@@ -1,8 +1,8 @@
 {
   "name": "Mado",
   "id": "com.huacnlee.mado",
-  "version": "0.1.2",
-  "build": 3,
+  "version": "0.1.3",
+  "build": 4,
   "icon": "assets/mado.png",
   "capabilities": {
     "fs": {

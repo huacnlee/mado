@@ -39,7 +39,7 @@ curl -fsSL https://raw.githubusercontent.com/huacnlee/mado/main/install.sh | sh
 ```
 
 It installs `Mado.app` into `~/Applications` on macOS, and `mado` into `~/.local` on Linux (with its desktop entry
-and icon), for the current user. `--version 0.1.2` installs a given release, `--dir <path>` another location. Every
+and icon), for the current user. `--version 0.1.3` installs a given release, `--dir <path>` another location. Every
 download is checked against the release's `SHA256SUMS`. Linux uses GTK 4.14+ and WebKitGTK 6.0.
 
 **Windows PowerShell**
@@ -76,7 +76,7 @@ nsh package --target macos    # Mado.app in .nsh/out (also linux, windows, web)
 
 ## Release
 
-Tag a version that matches `nsh.json`'s `version` (`v0.1.2`) and push the tag. The release workflow builds NSH at
+Tag a version that matches `nsh.json`'s `version` (`v0.1.3`) and push the tag. The release workflow builds NSH at
 the commit `NSH_REF` names, packages Mado with `nsh package` for each target, writes the archives
 `mado-<version>-<target>.tar.gz` (`.zip` on Windows) and their `SHA256SUMS`, and publishes them as a GitHub release.
 
@@ -84,3 +84,9 @@ the commit `NSH_REF` names, packages Mado with `nsh package` for each target, wr
 
 MIT. Mado's theme comes from [Solid Glass](https://github.com/deeplethe/solid-glass) (MIT) and its icons from
 [Lucide](https://lucide.dev) (ISC): see [NOTICE.md](NOTICE.md).
+
+A release can also be rebuilt with the workflow's optional `runtime_run` and
+`web_runtime_run` inputs while those build artifacts are retained. It verifies
+the source NSH commit, patch set and archive checksums before reusing the generic
+runtimes; the app code, metadata, macOS signatures and release archives are built
+again. Omit the inputs to build every runtime from source.

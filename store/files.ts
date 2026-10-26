@@ -4,7 +4,7 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
-import { Storage } from "nsh";
+import { Storage, platform } from "nsh";
 
 /** What Mado does with files. */
 export interface Files {
@@ -72,16 +72,21 @@ export const storageFiles: Files = {
   modified: async () => 0,
 };
 
-/** Where new documents go: `~/Documents/Mado`. */
+/** The browser's virtual root, or the native home directory. */
+function homeDirectory(): string {
+  return platform.os === "web" ? "/" : os.homedir() || "/";
+}
+
+/** Where new documents go: `~/Documents/Mado` (virtual on the web). */
 export function defaultFolder(): string {
-  return path.join(os.homedir() || "/", "Documents", "Mado");
+  return path.join(homeDirectory(), "Documents", "Mado");
 }
 
 /** `~/…` expanded; a relative path is taken in the default folder. */
 export function expandPath(input: string): string {
   const text = input.trim();
-  if (text === "~") return os.homedir();
-  if (text.startsWith("~/")) return path.join(os.homedir(), text.slice(2));
+  if (text === "~") return homeDirectory();
+  if (text.startsWith("~/")) return path.join(homeDirectory(), text.slice(2));
   if (path.isAbsolute(text)) return path.normalize(text);
   return path.join(defaultFolder(), text);
 }
@@ -94,7 +99,7 @@ export function markdownName(name: string): string {
 
 /** A path for display: the home directory as `~`. */
 export function displayPath(file: string): string {
-  const home = os.homedir();
+  const home = homeDirectory();
   return home && file.startsWith(home + path.sep) ? `~${file.slice(home.length)}` : file;
 }
 

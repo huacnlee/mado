@@ -9,9 +9,18 @@ on:
         description: Rebuild only the Web archive (for repairing a release build).
         type: boolean
         default: false
+      runtime_run:
+        description: Optional verified build run whose native runtimes can be reused.
+        type: string
+        default: ''
+      web_runtime_run:
+        description: Optional separate build run for the verified Web runtime.
+        type: string
+        default: ''
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -77,8 +86,23 @@ jobs:
       - uses: ./.github/actions/setup-nsh
         with:
           ref: ${{ env.NSH_REF }}
-          runner: ${{ matrix.runner }}
-          web: ${{ matrix.nsh == 'web' }}
+          runner: ${{ inputs.runtime_run != '' && 'none' || matrix.runner }}
+          web: ${{ matrix.nsh == 'web' && inputs.runtime_run == '' }}
+
+      - name: Prepare a verified runtime from an earlier build
+        if: inputs.runtime_run != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_RUN: ${{ matrix.nsh == 'web' && inputs.web_runtime_run != '' && inputs.web_runtime_run || inputs.runtime_run }}
+          RELEASE_TARGET: ${{ matrix.target }}
+          NSH_PLATFORM: ${{ matrix.nsh }}
+        run: |
+          gh run download "$SOURCE_RUN" --name "release-$RELEASE_TARGET" --dir "$RUNNER_TEMP/verified-runtime"
+          python packaging/reuse-runtime.py --input "$RUNNER_TEMP/verified-runtime" \
+            --output "$RUNNER_TEMP/mado-runtime" --platform "$NSH_PLATFORM" \
+            --repo "$GH_REPO" --run "$SOURCE_RUN" --nsh-ref "$NSH_REF"
+          echo "NSH_RUNTIME=$RUNNER_TEMP/mado-runtime" >> "$GITHUB_ENV"
 
       - name: Type check and test
         if: matrix.target == 'x86_64-unknown-linux-gnu'

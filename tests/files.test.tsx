@@ -122,3 +122,12 @@ test("opening another file saves pending edits to the previous file", async () =
   expect(app.storage()[fileKey("next.md")]?.trim()).toBe("Next");
   await app.waitFor("id:dirty-dot", { state: "gone" });
 });
+
+test("the web creates and saves documents without a native home directory", async () => {
+  const app = await openMado({ platform: "web", folder: "" });
+  await newFile(app);
+  await typeInEditor(app, "Browser draft");
+  await app.keyboard.press("mod+s");
+  await app.waitUntil(() => (app.storage()["mado.file:/Documents/Mado/Untitled.md"] ?? "").includes("Browser draft"));
+  await app.waitFor("id:dirty-dot", { state: "gone" });
+});

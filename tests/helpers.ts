@@ -8,18 +8,18 @@ export const FOLDER = "/mado-test";
 export const fileKey = (name: string) => `mado.file:${FOLDER}/${name}`;
 
 /** Opens Mado with `files` (name → Markdown) in its test folder; `recent` names the file it reopens. */
-export async function openMado(options: { files?: Record<string, string>; recent?: string[]; mode?: "visual" | "source" } = {}): Promise<App> {
+export async function openMado(options: { files?: Record<string, string>; recent?: string[]; mode?: "visual" | "source"; platform?: "macos" | "web"; folder?: string } = {}): Promise<App> {
   const storage: Record<string, string> = {
     "mado.settings": JSON.stringify({
       backend: "storage",
-      folder: FOLDER,
+      folder: options.folder ?? FOLDER,
       recent: (options.recent ?? []).map((name) => `${FOLDER}/${name}`),
       mode: options.mode ?? "visual",
       appearance: "dark",
     }),
   };
   for (const [name, text] of Object.entries(options.files ?? {})) storage[fileKey(name)] = text;
-  return open("../App.tsx", { storage, platform: "macos", width: 1200, height: 800 });
+  return open("../App.tsx", { storage, platform: options.platform ?? "macos", width: 1200, height: 800 });
 }
 
 /** Selects a textblock as a user does: three presses on it. */
