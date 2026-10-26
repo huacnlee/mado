@@ -81,3 +81,44 @@ test("a missing file shows an error in place", async () => {
   await app.waitFor("id:error");
   expect(app.shows("text:/does not exist/")).toBe(true);
 });
+
+test("saving the untitled document keeps its existing content", async () => {
+  const app = await openMado();
+  await app.waitFor("Welcome to Mado");
+  await app.press("role:button[Source]");
+  await app.waitFor("id:source-editor");
+  await app.press("text:/# Welcome to Mado/");
+  await app.keyboard.press("mod+a");
+  await app.type("id:source-editor", "A draft before its first save");
+  const text = await saveAndRead(app, "Untitled.md", (t) => t.includes("A draft before its first save"));
+  expect(text).toBe("A draft before its first save");
+  await app.waitFor("Untitled.md");
+  await app.waitFor("id:dirty-dot", { state: "gone" });
+});
+
+test("rename refuses an existing name and keeps both files", async () => {
+  const app = await openMado({ files: { "one.md": "One\n", "two.md": "Two\n" }, recent: ["one.md"] });
+  await app.waitFor("One");
+  await app.press("id:title");
+  await app.clear("id:rename-input");
+  await app.type("id:rename-input", "two.md");
+  await app.submit("id:rename-input");
+  await app.waitFor("id:error");
+  expect(app.storage()[fileKey("one.md")]).toBe("One\n");
+  expect(app.storage()[fileKey("two.md")]).toBe("Two\n");
+});
+
+test("opening another file saves pending edits to the previous file", async () => {
+  const app = await openMado({ files: { "draft.md": "Draft\n", "next.md": "Next\n" }, recent: ["draft.md"] });
+  await app.press("Draft");
+  await app.keyboard.press("end");
+  await typeInEditor(app, " edited");
+  await app.keyboard.press("mod+o");
+  await app.waitFor("id:open-panel");
+  await app.type("id:open-path", "/mado-test/next.md");
+  await app.press("id:open-submit");
+  await app.waitFor("Next");
+  expect(app.storage()[fileKey("draft.md")]?.trim()).toBe("Draft edited");
+  expect(app.storage()[fileKey("next.md")]?.trim()).toBe("Next");
+  await app.waitFor("id:dirty-dot", { state: "gone" });
+});

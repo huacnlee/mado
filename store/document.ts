@@ -38,11 +38,14 @@ export function createDocumentStore() {
   const saving = signal(false);
   let timer: ReturnType<typeof setTimeout> | null = null;
 
+  let detach = () => {};
   const attach = (next: MadoEditor) => {
-    next.editor.subscribe((r) => {
+    detach();
+    const subscription = next.editor.subscribe((r) => {
       revision.set(r);
       scheduleAutosave();
     });
+    detach = () => next.editor.unsubscribe(subscription);
     wire(next);
   };
   attach(mado());
@@ -63,6 +66,8 @@ export function createDocumentStore() {
 
   /** Shows `text` in a new editor session, as the last saved state. */
   function load(text: string, at: string | null) {
+    if (timer) clearTimeout(timer);
+    timer = null;
     const next = createMadoEditor(text);
     batch(() => {
       mado.set(next);
@@ -87,6 +92,7 @@ export function createDocumentStore() {
   }
 
   async function open(target: string): Promise<boolean> {
+    if (dirty() && !(await save())) return false;
     try {
       const text = await filesBackend().read(target);
       load(text, target);
@@ -102,23 +108,27 @@ export function createDocumentStore() {
 
   /** Writes the document to its file, or to `target` (save as). */
   async function save(target?: string): Promise<boolean> {
-    const to = target ?? file();
-    if (!to) return false;
+    const session = mado();
     const text = markdown();
+    let to = target ?? file();
+    const files = filesBackend();
     saving.set(true);
     try {
-      await filesBackend().mkdir(path.dirname(to));
-      await filesBackend().write(to, text);
+      to ??= await freeName(files, folder());
+      await files.mkdir(path.dirname(to));
+      await files.write(to, text);
+      if (mado() !== session) return true;
+      const savedTo = to;
       batch(() => {
         saved.set(text);
-        file.set(to);
+        file.set(savedTo);
         error.set(null);
-        status.set(`Saved ${displayPath(to)}`);
+        status.set(`Saved ${displayPath(savedTo)}`);
       });
       rememberRecent(to);
       return true;
     } catch (e) {
-      error.set(describeError(e, `Could not save ${displayPath(to)}`));
+      if (mado() === session) error.set(describeError(e, `Could not save ${displayPath(to ?? folder())}`));
       return false;
     } finally {
       saving.set(false);
@@ -127,6 +137,7 @@ export function createDocumentStore() {
 
   /** A new empty document saved at once as `name` (or `Untitled.md`) in the folder. */
   async function create(name?: string): Promise<boolean> {
+    if (dirty() && !(await save())) return false;
     const files = filesBackend();
     const target = name?.trim() ? path.join(folder(), markdownName(name)) : await freeName(files, folder());
     if (await files.exists(target)) {
@@ -145,7 +156,7 @@ export function createDocumentStore() {
     const files = filesBackend();
     try {
       if (await files.exists(to)) throw new Error(`${path.basename(to)} exists already`);
-      if (dirty()) await save();
+      if (dirty() && !(await save())) return false;
       await files.rename(from, to);
       file.set(to);
       forgetRecent(from);

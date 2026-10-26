@@ -26,6 +26,9 @@ runs:
     - name: Move the NSH checkout out of the app
       shell: bash
       run: mv nsh-toolchain "$RUNNER_TEMP/nsh"
+    - name: Apply the RichEditor geometry runtime fix
+      shell: bash
+      run: git -C "$RUNNER_TEMP/nsh" apply "$GITHUB_WORKSPACE/packaging/patches/nsh-rich-editor-geometry.patch"
     - uses: dtolnay/rust-toolchain@stable
       with:
         targets: ${{ inputs.web == 'true' && 'wasm32-unknown-unknown' || '' }}

@@ -30,7 +30,7 @@ function App() {
   effect(() => Window.setTitle(`${doc.title()}${doc.dirty() ? " — Edited" : ""} · Mado`));
 
   const save = () => {
-    void (doc.file() ? doc.save() : doc.create());
+    void doc.save();
   };
   const openLink = () => {
     if (doc.mode() === "visual") linkOpen.set(true);
@@ -97,7 +97,20 @@ function App() {
           <If when={doc.mode() === "visual"} else={<SourceEditor value={doc.source()} onChange={doc.setSource} />}>
             {/* One VisualEditor per session: opening a file makes a new session, and a new editor shows it. */}
             <Each of={[doc.mado()]}>
-              {(mado) => <VisualEditor mado={mado()} revision={doc.revision()} actions={{ save, openLink, openImage: () => imageOpen.set(true) }} />}
+              {(mado) => (
+                <VisualEditor
+                  mado={mado()}
+                  revision={doc.revision()}
+                  actions={{
+                    save,
+                    newFile: () => void doc.create(),
+                    openFile: () => openOpen.set(true),
+                    toggleMode: () => doc.setMode("source"),
+                    openLink,
+                    openImage: () => imageOpen.set(true),
+                  }}
+                />
+              )}
             </Each>
           </If>
         </View>

@@ -1,0 +1,157 @@
+diff --git i/crates/nsh-base/src/rich_editor/view/controller.rs w/crates/nsh-base/src/rich_editor/view/controller.rs
+index 1a32a0ff..15a1b80b 100644
+--- i/crates/nsh-base/src/rich_editor/view/controller.rs
++++ w/crates/nsh-base/src/rich_editor/view/controller.rs
+@@ -179,6 +179,7 @@ impl Rv {
+             tree: Rc::default(),
+             geo: Rc::new(RefCell::new(Geometry {
+                 font: "16px sans-serif".into(),
++                measure: Some(Rc::new(nsh_core::element::text_measurer())),
+                 ..Geometry::default()
+             })),
+             decorations: Rc::default(),
+diff --git i/crates/nsh-base/src/rich_editor/view/geometry.rs w/crates/nsh-base/src/rich_editor/view/geometry.rs
+index a059f8b2..fc923002 100644
+--- i/crates/nsh-base/src/rich_editor/view/geometry.rs
++++ w/crates/nsh-base/src/rich_editor/view/geometry.rs
+@@ -7,7 +7,7 @@
+ //! places stay apart: a position at a line wrap is two places, which the
+ //! selection's affinity tells apart.
+ 
+-use std::collections::HashMap;
++use std::{collections::HashMap, rc::Rc};
+ 
+ use nsh_core::{TextLine, prelude::*};
+ use unicode_segmentation::UnicodeSegmentation;
+@@ -114,6 +114,8 @@ pub(crate) struct Geometry {
+     pub(crate) atoms: HashMap<u64, usize>,
+     /// The font measuring within a line (relative widths only).
+     pub(crate) font: String,
++    /// Captured on the view's engine thread, independent of runtime entry.
++    pub(crate) measure: Option<Rc<dyn Fn(&str, &str) -> Points>>,
+ }
+ 
+ /// A place a point lands on.
+@@ -126,6 +128,13 @@ pub(crate) enum Hit {
+ }
+ 
+ impl Geometry {
++    fn measure_text(&self, text: &str) -> Points {
++        self.measure.as_ref().map_or_else(
++            || measure_text(&self.font, text),
++            |measure| measure(&self.font, text),
++        )
++    }
++
+     /// Block `id`'s top left in the content box.
+     pub(crate) fn origin(&self, id: u64) -> Option<Point<Points>> {
+         let mut at = Point::default();
+@@ -244,7 +253,7 @@ impl Geometry {
+         if x >= line.width {
+             return line.end;
+         }
+-        let full = measure_text(&self.font, &line.text).max(px(1.0));
++        let full = self.measure_text(&line.text).max(px(1.0));
+         let mut best = (line.start, Points(f32::MAX));
+         let mut units = 0u32;
+         let mut boundaries = vec![(0u32, 0usize)];
+@@ -261,7 +270,7 @@ impl Geometry {
+             let w = if b == 0 {
+                 px(0.0)
+             } else {
+-                line.width * (measure_text(&self.font, &line.text[..b]).0 / full.0)
++                line.width * (self.measure_text(&line.text[..b]).0 / full.0)
+             };
+             let d = Points((w - x).0.abs());
+             if d < best.1 {
+@@ -282,8 +291,8 @@ impl Geometry {
+         let units: Vec<u16> = line.text.encode_utf16().collect();
+         let k = ((t - line.start) as usize).min(units.len());
+         let prefix = String::from_utf16_lossy(&units[..k]);
+-        let full = measure_text(&self.font, &line.text).max(px(1.0));
+-        line.width * (measure_text(&self.font, &prefix).0 / full.0)
++        let full = self.measure_text(&line.text).max(px(1.0));
++        line.width * (self.measure_text(&prefix).0 / full.0)
+     }
+ 
+     /// The place at `p` (content box): an atom it is on, else the nearest
+diff --git i/crates/nsh-core/src/element/ambient.rs w/crates/nsh-core/src/element/ambient.rs
+index ea4c481a..a7318e68 100644
+--- i/crates/nsh-core/src/element/ambient.rs
++++ w/crates/nsh-core/src/element/ambient.rs
+@@ -294,6 +294,17 @@ pub fn measure_text(font: &str, text: &str) -> Points {
+     text_metrics(font, text).width
+ }
+ 
++/// Captures the platform text measurer while a component's runtime is entered.
++/// The returned function can also be called by synchronous JS session queries,
++/// where the Rust reactive runtime is not entered.
++pub fn text_measurer() -> impl Fn(&str, &str) -> Points + Clone {
++    let measure = with_data(|d| d.ambient.measure.clone()).expect("the core sets the text engine");
++    move |font, text| {
++        let font = CanvasFont::parse(font).unwrap_or_default();
++        measure(&font, text).width
++    }
++}
++
+ /// How `text` sits on one line in `font` (the CSS `font` shorthand; an
+ /// invalid one measures in `10px sans-serif`), by the platform's text
+ /// engine: its width and the font's ascent, descent and line height, to
+@@ -837,3 +848,23 @@ pub(crate) fn desktop_command(command: crate::desktop::DesktopCommand) {
+         Command::Desktop(Box::new(command)),
+     ));
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::{element::Runtime, geometry::px};
++
++    #[test]
++    fn captured_text_measurer_works_without_runtime_entry() {
++        let runtime = Runtime::default();
++        runtime.set_measure(Rc::new(|_, text| crate::canvas::TextMetrics {
++            width: px(text.chars().count() as f32),
++            ..Default::default()
++        }));
++        let measure = {
++            let _entered = runtime.enter();
++            text_measurer()
++        };
++        assert_eq!(measure("16px sans-serif", "选择 text"), px(7.0));
++    }
++}
+diff --git i/crates/nsh-core/src/element/mod.rs w/crates/nsh-core/src/element/mod.rs
+index 23fed235..cf16cabd 100644
+--- i/crates/nsh-core/src/element/mod.rs
++++ w/crates/nsh-core/src/element/mod.rs
+@@ -99,14 +99,8 @@ pub use nsh_macros::{
+ // The core's parts of `nsh_base`'s navigation and dialogs.
+ #[doc(hidden)]
+ pub use self::host::{modal, screen, stack};
+-pub(crate) use self::{
+-    animated::LiveNode,
+-    back::BackListener,
+-    builder::{ElKind, PlaceFn},
+-    component::{AnyInstance, caught},
+-    task::{Action, AnswerSlot, ClipboardRead, Executor},
+-};
+ pub use self::{
++    ambient::text_measurer,
+     animated::{
+         Animated, AnimatedNode, AnimatedValue, Animation, AnimationEnd, AnimationOperand,
+         DiffClamp, Interpolation, Motion, Spring, Timing, sample_decay, sample_decay_within,
+@@ -180,6 +174,13 @@ pub use self::{
+     value::{JsValue, NodeRef, PropEnum, PropError, SharedString, TsType, TsTypes, ts_of},
+     virtual_list::{ListLayout, ViewableItems, VirtualList, virtual_list},
+ };
++pub(crate) use self::{
++    animated::LiveNode,
++    back::BackListener,
++    builder::{ElKind, PlaceFn},
++    component::{AnyInstance, caught},
++    task::{Action, AnswerSlot, ClipboardRead, Executor},
++};
+ /// The geometry Rust components style with (`crate::geometry`).
+ pub use crate::geometry::{
+     AbsoluteLength, Bounds, Corners, DefiniteLength, DevicePixels, Edges, Length, Percentage,

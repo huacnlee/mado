@@ -7,6 +7,7 @@ import {
   type MadoEditor,
   type SlashItem,
   commands,
+  blockRect,
   coordsAtPos,
   currentBlock,
   editorClasses,
@@ -26,6 +27,9 @@ import { SlashMenu } from "./SlashMenu";
 
 export interface VisualEditorActions {
   save: () => void;
+  newFile: () => void;
+  openFile: () => void;
+  toggleMode: () => void;
   openLink: () => void;
   openImage: () => void;
 }
@@ -41,6 +45,9 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   const bubble = signal<Box | null>(null);
   const handle = signal<{ box: Box; empty: boolean; pos: number } | null>(null);
   const focused = signal(false);
+  const dragging = signal<number | null>(null);
+  const dropLine = signal<Box | null>(null);
+  let hostWidth = 0;
   const matches = () => {
     const q = slashQuery();
     return q ? slashMatches(q.text) : [];
@@ -49,6 +56,9 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   handlers.shortcut = (key) => {
     if (key === "Mod-s") props.actions.save();
     else if (key === "Mod-k") props.actions.openLink();
+    else if (key === "Mod-n") props.actions.newFile();
+    else if (key === "Mod-o") props.actions.openFile();
+    else if (key === "Mod-/") props.actions.toggleMode();
     else {
       const command = moveBlockBy(editor, editor.selection.head ?? 0, key === "Alt-ArrowUp" ? -1 : 1);
       if (command) editor.run(command);
@@ -79,7 +89,10 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
 
   const measure = async () => {
     const m = await host?.measure();
-    if (m) origin.set({ x: m.pagePosition.x, y: m.pagePosition.y });
+    if (m) {
+      origin.set({ x: m.pagePosition.x, y: m.pagePosition.y });
+      hostWidth = m.bounds.size.width;
+    }
   };
 
   /** After each change: the slash menu, the bubble menu and the block handle follow the selection. */
@@ -105,7 +118,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     void measure();
     bubble.set(!empty && selection.type === "text" ? selectionRect(editor) : null);
     const top = topLevelBlocks(editor.doc).find((b) => head >= b.from && head < b.to);
-    const caret = top ? coordsAtPos(editor, Math.min(top.from + 1, top.to)) : null;
+    const caret = top ? blockRect(editor, top.from) : null;
     handle.set(caret && top ? { box: caret, empty: !!block && block.text === "" && block.type === NODE.paragraph, pos: top.from } : null);
   };
 
@@ -125,23 +138,46 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
 
   const at = (box: Box) => ({ origin: { x: origin().x + box.x, y: origin().y + box.y }, size: { width: Math.max(box.width, 1), height: box.height } });
 
-  /** Drops the dragged block where the pointer is released. */
-  const drop = (pageX: number, pageY: number) => {
-    const h = handle();
-    if (!h) return;
+  /** The insertion boundary used by both the preview and the drop. */
+  const dropTarget = (pageX: number, pageY: number) => {
+    const source = dragging();
+    if (source === null) return null;
     const target = posAtCoords(editor, pageX - origin().x, pageY - origin().y);
-    if (target === null) return;
+    if (target === null) return null;
     const blocks = topLevelBlocks(editor.doc);
-    const from = blocks.findIndex((b) => h.pos >= b.from && h.pos < b.to);
+    const from = blocks.findIndex((b) => b.from === source);
     const to = blocks.findIndex((b) => target >= b.from && target < b.to);
-    if (from < 0 || to < 0 || from === to) return;
-    const range = { from: blocks[from].from, to: blocks[from].to };
-    const command = commands.moveBlock(range, to > from ? blocks[to].to : blocks[to].from);
-    if (command) editor.run(command);
+    if (from < 0 || to < 0 || from === to) return null;
+    const range = blocks[from];
+    const destination = blocks[to];
+    const after = to > from;
+    const box = blockRect(editor, destination.from);
+    return {
+      range,
+      target: after ? destination.to : destination.from,
+      line: box ? { x: 0, y: box.y + (after ? box.height : 0), width: hostWidth, height: 2 } : null,
+    };
+  };
+
+  const previewDrop = (pageX: number, pageY: number) => {
+    dropLine.set(dropTarget(pageX, pageY)?.line ?? null);
+  };
+
+  const cancelDrag = () => {
+    dragging.set(null);
+    dropLine.set(null);
+  };
+
+  /** Drops the dragged block at the boundary shown by the insertion line. */
+  const drop = (pageX: number, pageY: number) => {
+    const destination = dropTarget(pageX, pageY);
+    cancelDrag();
+    if (destination) editor.run(commands.moveBlock(destination.range, destination.target));
+    editor.focus();
   };
 
   return (
-    <View ref={(node: YNode) => (host = node)} class="flex-1" onLayout={() => void measure()}>
+    <View ref={(node: YNode) => (host = node)} class="relative flex-1" onLayout={() => void measure()}>
       <RichEditor
         editor={editor}
         testID="rich-editor"
@@ -154,6 +190,14 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
         onFocus={() => focused.set(true)}
         onBlur={() => focused.set(false)}
       />
+      <If when={dropLine() !== null}>
+        <View
+          testID="block-drop-indicator"
+          pointerEvents="none"
+          class="absolute h-0.5 rounded bg-ring"
+          style={{ left: dropLine()?.x ?? 0, top: dropLine()?.y ?? 0, width: dropLine()?.width ?? 0, zIndex: 10 }}
+        />
+      </If>
       <If when={slashQuery() !== null}>
         <Overlay
           anchor={(() => {
@@ -175,7 +219,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
           <BubbleMenu editor={editor} revision={props.revision} onLink={props.actions.openLink} />
         </Overlay>
       </If>
-      <If when={focused() && handle() !== null && bubble() === null && slashQuery() === null}>
+      <If when={(focused() || dragging() !== null) && handle() !== null && bubble() === null && slashQuery() === null}>
         <Overlay anchor={at((handle() as { box: Box }).box)} placement="left" offset={8}>
           <View class="flex-row items-center gap-0.5">
             <If when={handle()?.empty}>
@@ -198,7 +242,14 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
               tooltip="Drag to move, or Alt-↑ / Alt-↓"
               accessibilityLabel="Move block"
               onStartShouldSetResponder={() => true}
+              onResponderGrant={() => {
+                dragging.set(handle()?.pos ?? null);
+                return true;
+              }}
+              onResponderMove={(e) => previewDrop(e.nativeEvent.pageX, e.nativeEvent.pageY)}
               onResponderRelease={(e) => drop(e.nativeEvent.pageX, e.nativeEvent.pageY)}
+              onResponderTerminate={cancelDrag}
+              onResponderTerminationRequest={() => false}
               class="h-6 w-4 items-center justify-center rounded-md hover:bg-accent"
             >
               <Icon name="grip-vertical" size={14} tint={token("muted-foreground")} />

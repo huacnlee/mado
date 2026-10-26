@@ -134,3 +134,79 @@ test("the status bar counts words and characters", async () => {
   await typeInEditor(app, " four");
   await app.waitFor("4 words");
 });
+
+test("selecting text shows the bubble menu and clearing it hides the menu", async () => {
+  const app = await openMado({ files: { "selection.md": "Select these words\n" }, recent: ["selection.md"] });
+  await app.press("Select these words");
+  await app.keyboard.press("end");
+  await app.keyboard.press("shift+home");
+  await app.waitFor("id:bubble-menu");
+  await app.keyboard.press("right");
+  await app.waitFor("id:bubble-menu", { state: "gone" });
+});
+
+test("dragging a block moves it below another block and undo restores it", async () => {
+  const app = await openMado({ files: { "drag.md": "First block\n\nSecond block\n\nThird block\n" }, recent: ["drag.md"] });
+  await app.press("First block");
+  await app.waitFor("id:block-grip");
+  await app.drag("id:block-grip", { x: 100, y: 48 });
+  let text = await saveAndRead(app, "drag.md", (t) => t.indexOf("Second block") < t.indexOf("First block"));
+  expect(text.trim()).toBe("Second block\n\nFirst block\n\nThird block");
+  expect(app.shows("id:block-drop-indicator")).toBe(false);
+  await app.keyboard.press("mod+z");
+  text = await saveAndRead(app, "drag.md", (t) => t.startsWith("First block"));
+  expect(text.trim()).toBe("First block\n\nSecond block\n\nThird block");
+});
+
+test("Alt arrows move blocks up and down", async () => {
+  const app = await openMado({ files: { "move.md": "First\n\nSecond\n" }, recent: ["move.md"] });
+  await app.press("Second");
+  await app.keyboard.press("alt+up");
+  await saveAndRead(app, "move.md", (t) => t.startsWith("Second"));
+  await app.keyboard.press("alt+down");
+  await saveAndRead(app, "move.md", (t) => t.startsWith("First"));
+});
+
+test("the toolbar sets headings and quotes", async () => {
+  const app = await openMado({ files: { "blocks.md": "Section\n" }, recent: ["blocks.md"] });
+  await app.press("Section");
+  await app.press("label:Text style");
+  await app.press("Heading 2");
+  let text = await saveAndRead(app, "blocks.md", (t) => t.startsWith("## "));
+  expect(text.trim()).toBe("## Section");
+  await app.press("id:toolbar >> label:Quote");
+  text = await saveAndRead(app, "blocks.md", (t) => t.startsWith(">"));
+  expect(text).toContain("Section");
+});
+
+test("the image panel inserts an image with its description", async () => {
+  const app = await openMado();
+  await newFile(app);
+  await app.press("id:toolbar >> label:Image");
+  await app.waitFor("id:image-panel");
+  await app.type("id:image-src", "images/example.png");
+  await app.type("id:image-alt", "Example image");
+  await app.press("id:image-insert");
+  const text = await saveAndRead(app, "Untitled.md", (t) => t.includes("images/example.png"));
+  expect(text).toContain("![Example image](images/example.png)");
+});
+
+test("nested list blocks have a drag handle and can move as a whole", async () => {
+  const app = await openMado({ files: { "list.md": "- One\n- Two\n\nAfter\n" }, recent: ["list.md"] });
+  await app.press("One");
+  await app.waitFor("id:block-grip");
+  await app.keyboard.press("alt+down");
+  const text = await saveAndRead(app, "list.md", (t) => t.startsWith("After"));
+  expect(text).toMatch(/[-*] One\n[-*] Two/);
+});
+
+test("app shortcuts work while the rich editor has focus", async () => {
+  const app = await openMado({ files: { "keys.md": "Focused editor\n" }, recent: ["keys.md"] });
+  await app.press("Focused editor");
+  await app.keyboard.press("mod+/");
+  await app.waitFor("id:source-editor");
+  await app.press("role:button[Visual]");
+  await app.press("Focused editor");
+  await app.keyboard.press("mod+n");
+  await app.waitFor("Untitled.md");
+});

@@ -207,6 +207,43 @@ export function topLevelBlocks(doc: RichNodeJSON): { type: string; from: number;
   return blocks;
 }
 
+/** The text bounds of a top-level block, including nested quotes and lists. */
+export function blockRect(editor: RichEditorSession, from: number): Rect | null {
+  const blocks = topLevelBlocks(editor.doc);
+  const index = blocks.findIndex((block) => block.from === from);
+  const node = editor.doc.content?.[index];
+  if (!node) return null;
+  let bounds: Rect | null = null;
+  const include = (box: Rect | null) => {
+    if (!box) return;
+    if (!bounds) {
+      bounds = box;
+      return;
+    }
+    const x = Math.min(bounds.x, box.x);
+    const y = Math.min(bounds.y, box.y);
+    bounds = {
+      x, y,
+      width: Math.max(bounds.x + bounds.width, box.x + box.width) - x,
+      height: Math.max(bounds.y + bounds.height, box.y + box.height) - y,
+    };
+  };
+  const visit = (child: RichNodeJSON, pos: number) => {
+    if (child.type === NODE.paragraph || child.type === NODE.heading || child.type === NODE.codeBlock) {
+      include(coordsAtPos(editor, pos + 1));
+      include(coordsAtPos(editor, pos + nodeSize(child) - 1));
+      return;
+    }
+    let at = pos + 1;
+    for (const nested of child.content ?? []) {
+      visit(nested, at);
+      at += nodeSize(nested);
+    }
+  };
+  visit(node, from);
+  return bounds;
+}
+
 /** Where moving the top-level block at `pos` one place up (`-1`) or down (`1`) puts it: the command, or `null` at an end. */
 export function moveBlockBy(editor: RichEditorSession, pos: number, by: -1 | 1): RichCommand | null {
   const blocks = topLevelBlocks(editor.doc);
@@ -278,7 +315,7 @@ export function slashMatches(query: string): SlashItem[] {
 /** The plugins Mado's editors run, and the app plugins it hands back to capture keys with. */
 export interface MadoEditor {
   editor: RichEditorSession;
-  /** Takes Mod-s and Mod-k while the editor has the focus: saving and the link editor are the app's. */
+  /** Takes app shortcuts while the editor has focus. */
   shortcuts: RichEditorPlugin;
   /** Takes the arrows, Enter and Escape while the slash menu is open. */
   slash: RichEditorPlugin;
@@ -303,7 +340,7 @@ export function createMadoEditor(markdownText: string): MadoEditor {
 }
 
 /** The editor's keys Mado handles itself, as `RichEditorPlugin.captureKeys` names them. */
-export const SHORTCUT_KEYS = ["Mod-s", "Mod-k", "Alt-ArrowUp", "Alt-ArrowDown"];
+export const SHORTCUT_KEYS = ["Mod-s", "Mod-k", "Mod-n", "Mod-o", "Mod-/", "Alt-ArrowUp", "Alt-ArrowDown"];
 /** The keys the slash menu takes while open. */
 export const SLASH_KEYS = ["ArrowUp", "ArrowDown", "Enter", "Escape", "Tab"];
 

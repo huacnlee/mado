@@ -14,7 +14,7 @@ concurrency:
 
 env:
   # The longbridge/nsh commit Mado's releases are packaged with (RichEditor).
-  NSH_REF: main
+  NSH_REF: 71fa71099cde1dfa2c48ef1e0d97a028b9698df9
 
 jobs:
   build:
