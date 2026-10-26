@@ -40,7 +40,7 @@ runs:
       shell: bash
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang pkg-config libgtk-4-dev libwebkitgtk-6.0-dev libssl-dev
+        sudo apt-get install -y clang llvm pkg-config libgtk-4-dev libwebkitgtk-6.0-dev libssl-dev
     - uses: Swatinem/rust-cache@v2
       with:
         workspaces: ${{ runner.temp }}/nsh -> target

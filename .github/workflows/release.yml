@@ -4,6 +4,11 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      web_only:
+        description: Rebuild only the Web archive (for repairing a release build).
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -22,6 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        exclude: ${{ inputs.web_only && fromJSON('[{"nsh":"macos"},{"nsh":"linux"},{"nsh":"windows"}]') || fromJSON('[]') }}
         include:
           - os: macos-15
             target: aarch64-apple-darwin
