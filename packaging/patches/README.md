@@ -1,6 +1,6 @@
 # NSH toolchain patch
 
-Mado 0.1.1 uses NSH commit `71fa71099cde1dfa2c48ef1e0d97a028b9698df9`
+Mado 0.1.2 uses NSH commit `71fa71099cde1dfa2c48ef1e0d97a028b9698df9`
 with `nsh-rich-editor-geometry.patch`. CI and release builds apply it before
 building both the CLI and platform runners.
 

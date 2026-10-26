@@ -39,7 +39,7 @@ curl -fsSL https://raw.githubusercontent.com/huacnlee/mado/main/install.sh | sh
 ```
 
 It installs `Mado.app` into `~/Applications` on macOS, and `mado` into `~/.local` on Linux (with its desktop entry
-and icon), for the current user. `--version 0.1.1` installs a given release, `--dir <path>` another location. Every
+and icon), for the current user. `--version 0.1.2` installs a given release, `--dir <path>` another location. Every
 download is checked against the release's `SHA256SUMS`. Linux uses GTK 4.14+ and WebKitGTK 6.0.
 
 **Windows PowerShell**
@@ -76,7 +76,7 @@ nsh package --target macos    # Mado.app in .nsh/out (also linux, windows, web)
 
 ## Release
 
-Tag a version that matches `nsh.json`'s `version` (`v0.1.1`) and push the tag. The release workflow builds NSH at
+Tag a version that matches `nsh.json`'s `version` (`v0.1.2`) and push the tag. The release workflow builds NSH at
 the commit `NSH_REF` names, packages Mado with `nsh package` for each target, writes the archives
 `mado-<version>-<target>.tar.gz` (`.zip` on Windows) and their `SHA256SUMS`, and publishes them as a GitHub release.
 
