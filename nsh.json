@@ -1,0 +1,27 @@
+{
+  "name": "Mado",
+  "id": "com.huacnlee.mado",
+  "version": "0.1.0",
+  "build": 1,
+  "icon": "assets/mado.png",
+  "capabilities": {
+    "fs": {
+      "read": [
+        "${homeDir}"
+      ],
+      "write": [
+        "${homeDir}"
+      ]
+    },
+    "clipboard": true,
+    "openUrl": {
+      "schemes": [
+        "http",
+        "https",
+        "mailto"
+      ]
+    }
+  },
+  "theme": "theme.json",
+  "appearance": "dark"
+}

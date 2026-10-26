@@ -1,0 +1,163 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # The longbridge/nsh commit Mado's releases are packaged with (RichEditor).
+  NSH_REF: main
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            target: aarch64-apple-darwin
+            nsh: macos
+            runner: nsh-macos-app
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            nsh: macos
+            runner: nsh-macos-app
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            nsh: linux
+            runner: nsh-linux-app
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            nsh: linux
+            runner: nsh-linux-app
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            nsh: windows
+            runner: nsh-windows-app
+          - os: ubuntu-24.04
+            target: web
+            nsh: web
+            runner: none
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate version and release tag
+        id: version
+        env:
+          RELEASE_REF: ${{ github.ref }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import json, os
+          version = json.load(open('nsh.json'))['version']
+          if os.environ['RELEASE_REF'].startswith('refs/tags/') and os.environ['RELEASE_TAG'] != f'v{version}':
+              raise SystemExit(f'Release tag must match nsh.json: v{version}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
+              stream.write(f'version={version}\n')
+          PY
+
+      - name: Test Unix installer
+        if: runner.os != 'Windows'
+        run: python scripts/test-install.py
+
+      - name: Test Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/test-install.ps1
+
+      - uses: ./.github/actions/setup-nsh
+        with:
+          ref: ${{ env.NSH_REF }}
+          runner: ${{ matrix.runner }}
+          web: ${{ matrix.nsh == 'web' }}
+
+      - name: Type check and test
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          nsh check .
+          nsh test .
+
+      - name: Package with nsh
+        env:
+          NSH_TARGET: ${{ matrix.nsh }}
+        run: nsh package . --target "$NSH_TARGET" --out .nsh/release
+
+      - name: Make the release archive
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: |
+          packaged=.nsh/release
+          # The web package is a site in a folder of the app's name.
+          if [ "$RELEASE_TARGET" = web ] && [ -d .nsh/release/Mado ]; then packaged=.nsh/release/Mado; fi
+          python packaging/build-release.py --target "$RELEASE_TARGET" --version "$RELEASE_VERSION" \
+            --packaged "$packaged" --output dist
+
+      - name: Verify the release archive
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: |
+          extension=tar.gz
+          if [ "$RUNNER_OS" = Windows ]; then extension=zip; fi
+          python packaging/check-release.py "dist/mado-$RELEASE_VERSION-$RELEASE_TARGET.$extension" --version "$RELEASE_VERSION"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish release assets
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: dist
+
+      - name: Verify and combine checksums
+        run: |
+          cd dist
+          cat *.sha256 | sort -k2 > SHA256SUMS
+          test "$(wc -l < SHA256SUMS)" -eq 6
+          sha256sum --check SHA256SUMS
+          rm -- *.sha256
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          prerelease=()
+          if [[ "$RELEASE_TAG" == *-* ]]; then prerelease+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" --verify-tag --generate-notes \
+            --title "Mado $RELEASE_TAG" "${prerelease[@]}" dist/*

@@ -1,0 +1,55 @@
+name: Set up NSH
+description: >-
+  Builds the nsh command line and this machine's release runner from a pinned
+  longbridge/nsh commit and puts nsh on PATH. Mado is a TSX app: nsh packages
+  its bytecode next to the prebuilt runner.
+inputs:
+  ref:
+    description: The longbridge/nsh commit, tag or branch to build.
+    required: true
+  runner:
+    description: The runner crate to build (nsh-macos-app, nsh-linux-app, nsh-windows-app), or none.
+    default: none
+  web:
+    description: Build the web runtime too.
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: longbridge/nsh
+        ref: ${{ inputs.ref }}
+        path: nsh-toolchain
+        persist-credentials: false
+    # Outside the app's folder, so the app's type check and tests see only Mado.
+    - name: Move the NSH checkout out of the app
+      shell: bash
+      run: mv nsh-toolchain "$RUNNER_TEMP/nsh"
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ inputs.web == 'true' && 'wasm32-unknown-unknown' || '' }}
+    - name: Install Linux build dependencies
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang pkg-config libgtk-4-dev libwebkitgtk-6.0-dev libssl-dev
+    - uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ runner.temp }}/nsh -> target
+        key: nsh-${{ inputs.ref }}-${{ inputs.runner }}-${{ inputs.web }}
+    - name: Build the nsh CLI and runtime
+      shell: bash
+      working-directory: ${{ runner.temp }}/nsh
+      env:
+        RUNNER: ${{ inputs.runner }}
+        WEB: ${{ inputs.web }}
+      run: |
+        # Windows' rustc may overflow its stack on the `windows` crate.
+        if [ "$RUNNER_OS" = Windows ]; then export RUST_MIN_STACK=268435456; fi
+        packages=(-p nsh-cli)
+        if [ "$RUNNER" != none ]; then packages+=(-p "$RUNNER"); fi
+        cargo build --locked --release "${packages[@]}"
+        if [ "$WEB" = true ]; then cargo xtask web; fi
+        echo "$PWD/target/release" >> "$GITHUB_PATH"
