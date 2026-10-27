@@ -3,7 +3,7 @@
 // block under the pointer or the caret (a "+" on an empty line, a grip to
 // drag the block elsewhere). Blocks are nsh-richtext's: a list or task item
 // moves on its own among its siblings, any other block at the top level.
-import { Overlay, View, cleanup, signal, token, type YNode } from "nsh";
+import { Overlay, Text, View, cleanup, signal, token, type YNode } from "nsh";
 import { RichEditor } from "nsh/base";
 import {
   type MadoEditor,
@@ -60,6 +60,8 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   const focused = signal(false);
   /** Typed since the pointer last moved: the handle steps aside, as Tiptap's does on a key. */
   const typing = signal(false);
+  /** The dragged blocks' first line, beside the pointer (Tiptap's drag image). */
+  const preview = signal<{ x: number; y: number; text: string } | null>(null);
   const dragging = signal<number | null>(null);
   let hostWidth = 0;
   const matches = () => {
@@ -221,10 +223,20 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     return null;
   };
 
+  /** What a handle drag from the block at `from` carries, as text: the selection when it spans that block, else the block. */
+  const draggedText = (from: number) => {
+    const block = blockAt(editor, from + 1);
+    const { anchor, head } = editor.selection;
+    const [a, b] = [Math.min(anchor ?? 0, head ?? 0), Math.max(anchor ?? 0, head ?? 0)];
+    const [start, end] = a < b && block && a <= block.to && b >= block.from ? [a, b] : [block?.from ?? from, block?.to ?? from];
+    return editor.textBetween(start, end, "\n").trim().split("\n")[0] ?? "";
+  };
+
   /** Ends a handle drag: NSH's view drops the block at its drop cursor, or keeps it selected after a press. */
   const endDrag = () => {
     if (dragging() === null) return;
     dragging.set(null);
+    preview.set(null);
     editor.endDrag();
     editor.focus();
   };
@@ -271,6 +283,15 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
           <SlashMenu items={matches()} highlighted={highlighted()} onPick={pick} onHover={(v) => highlighted.set(v)} />
         </Overlay>
       </If>
+      <If when={preview() !== null}>
+        <Overlay anchor={{ origin: { x: preview()?.x ?? 0, y: preview()?.y ?? 0 }, size: { width: 1, height: 1 } }} placement="right" align="center" offset={12}>
+          <View testID="drag-preview" class="max-w-80 rounded-md border border-border bg-background px-2 py-1 opacity-80 shadow-md">
+            <Text numberOfLines={1} class="text-sm text-foreground">
+              {preview()?.text || " "}
+            </Text>
+          </View>
+        </Overlay>
+      </If>
       {/* While a drag runs the handle stays: it holds the press (a dragged table selects, which would hide it). */}
       <If when={handle() !== null && (dragging() !== null || ((focused() || hovered() !== null) && !typing() && !table() && slashQuery() === null))}>
         {/* Anchored on the block's first line, centered on it, whatever the block's height. */}
@@ -303,9 +324,15 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
                 if (pos === undefined) return false;
                 editor.dragBlock(pos - 1, { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY });
                 dragging.set(pos);
+                preview.set({ x: e.nativeEvent.pageX, y: e.nativeEvent.pageY, text: draggedText(pos - 1) });
                 return true;
               }}
-              onResponderMove={(e) => editor.dragTo({ x: e.nativeEvent.pageX, y: e.nativeEvent.pageY })}
+              onResponderMove={(e) => {
+                const page = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
+                editor.dragTo(page);
+                const shown = preview();
+                if (shown) preview.set({ ...shown, ...page });
+              }}
               onResponderRelease={endDrag}
               onResponderTerminate={endDrag}
               onResponderTerminationRequest={() => false}
