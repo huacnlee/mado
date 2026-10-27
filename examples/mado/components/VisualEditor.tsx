@@ -27,6 +27,7 @@ import {
   linkHref,
   cellRange,
   tableEdges,
+  nodeRect,
 } from "../editor/setup";
 import { chain, command as named, insertContentAt, insertText, setTextSelection } from "nsh/base";
 import { Buffer } from "buffer";
@@ -71,23 +72,20 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   let tableRetries = 0;
   const placeTableAdders = () => {
     const edges = tableEdges(editor);
-    const first = edges && coordsAtPos(editor, edges.from + 4);
-    const last = edges && coordsAtPos(editor, edges.lastCell);
     if (!edges) return tableBox.set(null);
+    const box = nodeRect(editor, edges.from);
     // A row or column just added has no layout yet: read it again over the next frames.
-    if (!first || !last || hostWidth === 0) {
+    if (!box) {
       if (tableRetries++ < 10) setTimeout(placeTableAdders, 16);
       return;
     }
     tableRetries = 0;
-    // The cells' text sits inside their padding (py-2) and the table spans the text column.
-    const left = origin().x + textLeft(hostWidth) - 0;
-    const top = first.y - 9;
-    const bottom = last.y + last.height + 9;
-    tableBox.set({ box: { x: left, y: top, width: origin().x + textRight(hostWidth) + 20 - left, height: bottom - top }, lastCell: edges.lastCell, lastColumn: edges.lastColumn });
+    tableBox.set({ box, lastCell: edges.lastCell, lastColumn: edges.lastColumn });
   };
   /** Whole columns or rows selected (by a grip): their menu shows instead of the table's bar. */
   const axis = signal<CellRange | null>(null);
+  /** Several cells selected (not whole columns or rows): the table's bar (merge, header, ...) shows. A caret in a cell shows none. */
+  const cells = signal(false);
   const handle = signal<{ box: Box; empty: boolean; pos: number; end: number; item: boolean } | null>(null);
   /** The block the pointer is over, which the handle follows before the caret's. */
   const hovered = signal<number | null>(null);
@@ -139,16 +137,30 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   };
 
   /** Follows the kit's `/` suggestion (nsh-richtext's `slashMenu`): its range, its query and the keys it took. */
+  /** Where the slash is on the page: a line just made has no layout yet, so it is read again over the next frames. */
+  const slashBox = signal<Box | null>(null);
+  let slashRetries = 0;
+  const placeSlash = (pos: number) => {
+    const box = coordsAtPos(editor, pos);
+    if (box) {
+      slashRetries = 0;
+      slashBox.set(box);
+    } else if (slashRetries++ < 10) {
+      setTimeout(() => slashQuery() && placeSlash(pos), 16);
+    }
+  };
   const followSlash = () => {
     const state = editor.suggestion(SLASH_KEY);
     if (!state?.active || state.decorationId === dismissed) {
       if (!state?.active) dismissed = null;
       keysSeen = state?.keyCount ?? 0;
       slashQuery.set(null);
+      slashBox.set(null);
       return;
     }
     const opening = slashQuery() === null;
     slashQuery.set({ text: state.query ?? "", from: state.range.from, to: state.range.to });
+    placeSlash(state.range.to);
     if (opening) highlighted.set(0);
     else highlighted.set(Math.min(highlighted(), Math.max(matches().length - 1, 0)));
     if (state.keyCount > keysSeen && state.lastKey) {
@@ -179,6 +191,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     table.set(inTable(editor));
     const range = cellRange(editor);
     axis.set(range && range.kind !== "cells" ? range : null);
+    cells.set(range?.kind === "cells" && range.from !== range.to);
     placeTableAdders();
     const href = empty && selection.type === "text" ? linkHref(editor) : "";
     if (href !== link()) linkEditing.set(false);
@@ -339,7 +352,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
         bubbleMenuPlacement={link() && bubble() === null ? "bottom" : "top"}
         bubbleMenu={
           <If when={slashQuery() === null && bubble() === null && link() !== "" && (focused() || linkEditing())} else={
-          <If when={slashQuery() === null && (bubble() !== null || table() || axis() !== null)}>
+          <If when={slashQuery() === null && (bubble() !== null || axis() !== null || cells())}>
             <If
               when={bubble() !== null}
               else={
@@ -356,13 +369,9 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
           </If>
         }
       />
-      <If when={slashQuery() !== null}>
+      <If when={slashQuery() !== null && slashBox() !== null}>
         <Overlay
-          anchor={(() => {
-            const q = slashQuery();
-            const box = q ? coordsAtPos(editor, q.to) : null;
-            return box ? at(box) : host;
-          })()}
+          anchor={at(slashBox() as Box)}
           placement="bottom"
           align="start"
           offset={6}

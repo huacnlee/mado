@@ -384,13 +384,15 @@ test("==highlights== load as highlights and are saved back", async () => {
   expect(text.trim()).toBe("Some ==marked== words.");
 });
 
-test("the toolbar inserts a table, its menu adds a row, and it saves as GFM", async () => {
+test("the toolbar inserts a table, the bar under it adds a row, and it saves as GFM", async () => {
   const app = await openMado();
   await newFile(app);
   await app.press("id:toolbar >> label:Table");
-  await app.waitFor("id:table-menu");
+  // A caret in a cell shows no bar; the bar under the table adds a row.
+  await app.waitFor("id:table-add-row");
+  expect(app.shows("id:table-menu")).toBe(false);
   await typeKeys(app, "Name");
-  await app.press("id:table-menu >> label:Add row below");
+  await app.press("id:table-add-row");
   const text = await saveAndRead(app, "Untitled.md", (t) => t.includes("Name"));
   expect(text).toMatch(/^\| Name \|/m);
   expect(text.trim().split("\n").length).toBe(5);
@@ -412,7 +414,7 @@ test("/table inserts a table from the block menu", async () => {
   await typeInEditor(app, "/table");
   await app.waitFor("id:slash-menu >> Table");
   await app.keyboard.press("enter");
-  await app.waitFor("id:table-menu");
+  await app.waitFor("id:table-add-row");
 });
 
 test("pressing a block's handle selects the block, and Backspace deletes it", async () => {

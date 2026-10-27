@@ -88,6 +88,11 @@ export function coordsAtPos(editor: RichEditorSession, pos: number): Rect | null
   return editor.pageCoordsAtPos(pos) as Rect | null;
 }
 
+/** The page box of the block starting at `pos` (a table), or `null`. */
+export function nodeRect(editor: RichEditorSession, pos: number): Rect | null {
+  return editor.pageNodeRect(pos) as Rect | null;
+}
+
 /** The box around the selection in the editor view, or `null`. */
 export function selectionRect(editor: RichEditorSession): Rect | null {
   return editor.selectionRect() as Rect | null;
@@ -360,8 +365,8 @@ const nodes: Record<string, string> = {
   [NODE.image]: "rounded-lg max-w-full",
   [NODE.table]: "border border-border rounded-md",
   [NODE.tableRow]: "border-b border-border",
-  [NODE.tableHeader]: "bg-muted font-semibold px-3 py-2 border-r border-border",
-  [NODE.tableCell]: "px-3 py-2 border-r border-border",
+  [NODE.tableHeader]: "bg-muted font-semibold px-3 py-2 border-r border-border last:border-r-0",
+  [NODE.tableCell]: "px-3 py-2 border-r border-border last:border-r-0",
 };
 for (const align of ["center", "right", "justify"] as const) {
   nodes[`${NODE.paragraph}[textAlign=${align}]`] = `${nodes[NODE.paragraph]} text-${align}`;
