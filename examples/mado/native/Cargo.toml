@@ -1,0 +1,12 @@
+[package]
+name = "mado-native"
+description = "The Mado example's own Rust: native file dialogs."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+nsh-core.workspace = true
+nsh-richtext.workspace = true
+rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "tokio"] }

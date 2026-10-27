@@ -4,7 +4,9 @@
 import { batch, computed, signal } from "nsh";
 import { platform } from "nsh";
 import * as path from "path";
-import { createMadoEditor, type MadoEditor } from "../editor/setup";
+import { createMadoEditor, markdownOf, type MadoEditor } from "../editor/setup";
+import type { RichNodeJSON } from "nsh/base";
+import { RichText } from "nsh-richtext";
 import { countWords } from "../editor/markdown";
 import { describeError, diskFiles, displayPath, type Files, freeName, markdownName, storageFiles, defaultFolder } from "./files";
 import { type Mode, rememberRecent, forgetRecent, settings, updateSettings } from "./settings";
@@ -29,10 +31,10 @@ export function createDocumentStore() {
   let wire: Wire = () => {};
   const mado = signal<MadoEditor>(createMadoEditor(WELCOME));
   const file = signal<string | null>(null);
-  const saved = signal(mado().editor.getMarkdown());
+  const saved = signal(markdownOf(mado().editor));
   const revision = signal(0);
   const mode = signal<Mode>(settings().mode);
-  const source = signal(mode() === "source" ? mado().editor.getMarkdown() : "");
+  const source = signal(mode() === "source" ? markdownOf(mado().editor) : "");
   const error = signal<string | null>(null);
   const status = signal<string | null>(null);
   const saving = signal(false);
@@ -53,7 +55,7 @@ export function createDocumentStore() {
   /** The document's Markdown as it is now, in either mode. */
   const markdown = () => {
     revision();
-    return mode() === "source" ? source() : mado().editor.getMarkdown();
+    return mode() === "source" ? source() : markdownOf(mado().editor);
   };
   const dirty = computed(() => markdown() !== saved());
   const text = computed(() => {
@@ -75,7 +77,7 @@ export function createDocumentStore() {
       file.set(at);
       revision.set(next.editor.revision);
       // The editor writes Markdown its own way: what it reads back is the saved state.
-      const normalized = next.editor.getMarkdown();
+      const normalized = markdownOf(next.editor);
       saved.set(mode() === "source" ? text : normalized);
       source.set(text);
       error.set(null);
@@ -189,20 +191,20 @@ export function createDocumentStore() {
     if (next === mode()) return;
     const editor = mado().editor;
     if (next === "source") {
-      const text = editor.getMarkdown();
+      const text = markdownOf(editor);
       batch(() => {
         source.set(text);
         mode.set("source");
       });
     } else {
-      editor.setContent(source(), "markdown");
+      editor.setContent(RichText.fromMarkdown(source()) as RichNodeJSON);
       // What the editor makes of the source is the text it now holds; a
       // document unchanged since the save stays clean.
       const wasClean = source() === saved();
       batch(() => {
         mode.set("visual");
         revision.set(editor.revision);
-        if (wasClean) saved.set(editor.getMarkdown());
+        if (wasClean) saved.set(markdownOf(editor));
       });
     }
     updateSettings({ mode: next });

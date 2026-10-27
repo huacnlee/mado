@@ -2,14 +2,15 @@
 import { View, effect, mount, signal } from "nsh";
 import { setColorScheme, windowSize } from "nsh";
 import { Window, titleBar } from "nsh/desktop";
-import { keymap } from "nsh";
+import { keymap, platform } from "nsh";
+import { Dialogs } from "mado/native";
 import { ErrorNote } from "./components/ui";
 import { SourceEditor } from "./components/SourceEditor";
 import { StatusBar } from "./components/StatusBar";
 import { Toolbar } from "./components/Toolbar";
 import { TopBar } from "./components/TopBar";
 import { VisualEditor } from "./components/VisualEditor";
-import { createDocumentStore } from "./store/document";
+import { createDocumentStore, folder } from "./store/document";
 import { loadSettings, settings, updateSettings } from "./store/settings";
 
 function App() {
@@ -32,6 +33,15 @@ function App() {
   const save = () => {
     void doc.save();
   };
+  /** Open: the system's dialog, starting in the documents folder; the recent list where there is none (the web, tests). */
+  const openDialog = async () => {
+    if (platform.os === "web" || settings().backend === "storage") {
+      openOpen.set(true);
+      return;
+    }
+    const file = await Dialogs.openMarkdown(folder());
+    if (file) await doc.open(file);
+  };
   const openLink = () => {
     if (doc.mode() === "visual") linkOpen.set(true);
   };
@@ -39,7 +49,7 @@ function App() {
   keymap.bind(
     {
       "mod+s": save,
-      "mod+o": () => openOpen.set(true),
+      "mod+o": () => void openDialog(),
       "mod+n": () => void doc.create(),
       "mod+/": () => doc.setMode(doc.mode() === "visual" ? "source" : "visual"),
     },
@@ -57,6 +67,7 @@ function App() {
         openOpen={openOpen()}
         setOpenOpen={(v) => openOpen.set(v)}
         onOpen={(file) => void doc.open(file)}
+        onOpenDialog={() => void openDialog()}
         onNew={(name) => void doc.create(name)}
         onSave={save}
         onRename={(name) => void doc.rename(name)}
@@ -104,7 +115,7 @@ function App() {
                   actions={{
                     save,
                     newFile: () => void doc.create(),
-                    openFile: () => openOpen.set(true),
+                    openFile: () => void openDialog(),
                     toggleMode: () => doc.setMode("source"),
                     openLink,
                     openImage: () => imageOpen.set(true),

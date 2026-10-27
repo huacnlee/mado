@@ -4,7 +4,7 @@
 The archive of each target holds:
   macOS    Mado.app
   Linux    mado/ (the packaged app: the `Mado` executable and its `nsh/` resources),
-           packaging/mado.desktop, assets/mado.png
+           packaging/mado.desktop, assets/mado.png (from examples/mado)
   Windows  Mado.exe and its `nsh\\` resources, at the top
   web      the static site, at the top
 plus LICENSE and README.md, and a `<archive>.sha256` sidecar next to it.
@@ -51,10 +51,11 @@ def package(root, packaged, output, version, target):
                 raise SystemExit(f"nsh package output is missing {app / NAME}")
             copy_tree(app, stage / "mado")
             (stage / "mado" / NAME).chmod(0o755)
-            for name in ("packaging/mado.desktop", "assets/mado.png"):
+            # The archive keeps the install scripts' layout: assets/ at its root.
+            for source, name in (("packaging/mado.desktop", "packaging/mado.desktop"), ("examples/mado/assets/mado.png", "assets/mado.png")):
                 destination = stage / name
                 destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(root / name, destination)
+                shutil.copy2(root / source, destination)
         elif platform == "windows":
             app = packaged / NAME
             if not (app / f"{NAME}.exe").is_file():

@@ -15,12 +15,12 @@ depends=(
 options=('!debug' '!strip')
 
 # Built from a repository checkout (`makepkg` run in a clone) with the nsh
-# command line on PATH, or named by $NSH.
+# command line on PATH, or named by $NSH: `scripts/setup-nsh.sh` builds one.
 source=()
 
 build() {
   cd "$startdir"
-  "${NSH:-nsh}" package . --target linux --out "$srcdir/out"
+  "${NSH:-nsh}" package examples/mado --target linux --out "$srcdir/out"
 }
 
 package() {
@@ -31,7 +31,7 @@ package() {
   printf '#!/bin/sh\nexec /usr/lib/mado/Mado "$@"\n' > "$pkgdir/usr/bin/mado"
   chmod 755 "$pkgdir/usr/bin/mado"
   install -Dm644 packaging/mado.desktop "$pkgdir/usr/share/applications/mado.desktop"
-  install -Dm644 assets/mado.png "$pkgdir/usr/share/icons/hicolor/1024x1024/apps/mado.png"
+  install -Dm644 examples/mado/assets/mado.png "$pkgdir/usr/share/icons/hicolor/1024x1024/apps/mado.png"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   install -Dm644 NOTICE.md "$pkgdir/usr/share/licenses/$pkgname/NOTICE.md"
 }

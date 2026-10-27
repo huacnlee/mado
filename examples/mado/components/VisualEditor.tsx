@@ -1,23 +1,26 @@
 // The rich editor and what floats over it: the bubble menu over a selection,
-// the slash menu at a `/`, and the block handle beside the caret's block
-// (a "+" on an empty line, a grip to drag the block elsewhere).
+// the slash menu at a `/`, and the block handle beside the first line of the
+// block under the pointer or the caret (a "+" on an empty line, a grip to
+// drag the block elsewhere). Blocks are nsh-richtext's: a list or task item
+// moves on its own among its siblings, any other block at the top level.
 import { Overlay, View, cleanup, signal, token, type YNode } from "nsh";
 import { RichEditor } from "nsh/base";
 import {
   type MadoEditor,
   type SlashItem,
   commands,
+  blockAt,
   blockRect,
   coordsAtPos,
   currentBlock,
+  dropTarget,
   editorClasses,
-  moveBlockBy,
+  firstLineRect,
   onEditorEvent,
   placeholders,
   posAtCoords,
   selectionRect,
   slashMatches,
-  topLevelBlocks,
   NODE,
 } from "../editor/setup";
 import { insertText } from "nsh/base";
@@ -34,6 +37,9 @@ export interface VisualEditorActions {
   openImage: () => void;
 }
 
+/** How far left of an item's text its handle goes: past the bullet, number or checkbox. */
+const ITEM_GUTTER = 30;
+
 type Box = { x: number; y: number; width: number; height: number };
 
 export function VisualEditor(props: { mado: MadoEditor; revision: number; actions: VisualEditorActions }) {
@@ -43,7 +49,9 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   const slashQuery = signal<{ text: string; from: number; to: number } | null>(null);
   const highlighted = signal(0);
   const bubble = signal<Box | null>(null);
-  const handle = signal<{ box: Box; empty: boolean; pos: number } | null>(null);
+  const handle = signal<{ box: Box; empty: boolean; pos: number; item: boolean } | null>(null);
+  /** The block the pointer is over, which the handle follows before the caret's. */
+  const hovered = signal<number | null>(null);
   const focused = signal(false);
   const dragging = signal<number | null>(null);
   const dropLine = signal<Box | null>(null);
@@ -59,10 +67,6 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     else if (key === "Mod-n") props.actions.newFile();
     else if (key === "Mod-o") props.actions.openFile();
     else if (key === "Mod-/") props.actions.toggleMode();
-    else {
-      const command = moveBlockBy(editor, editor.selection.head ?? 0, key === "Alt-ArrowUp" ? -1 : 1);
-      if (command) editor.run(command);
-    }
   };
 
   const closeSlash = () => {
@@ -74,7 +78,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     const q = slashQuery();
     if (!q) return;
     closeSlash();
-    editor.run(commands.fromSlash(q.from, q.to, item.command(editor)));
+    editor.run(commands.fromSlash(q.from, q.to, item));
     if (item.id === "image") props.actions.openImage();
     editor.focus();
   };
@@ -117,9 +121,31 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
 
     void measure();
     bubble.set(!empty && selection.type === "text" ? selectionRect(editor) : null);
-    const top = topLevelBlocks(editor.doc).find((b) => head >= b.from && head < b.to);
-    const caret = top ? blockRect(editor, top.from) : null;
-    handle.set(caret && top ? { box: caret, empty: !!block && block.text === "" && block.type === NODE.paragraph, pos: top.from } : null);
+    placeHandle(hovered() ?? head, block);
+  };
+
+  /** Puts the handle beside the first line of the block at `pos`. */
+  const placeHandle = (pos: number, caretBlock = currentBlock(editor)) => {
+    if (dragging() !== null) return;
+    const target = blockAt(editor, pos);
+    const line = target ? firstLineRect(editor, target) : null;
+    if (!target || !line) {
+      handle.set(null);
+      return;
+    }
+    const head = editor.selection.head ?? 0;
+    const empty = !!caretBlock && caretBlock.text === "" && caretBlock.type === NODE.paragraph && head >= target.from && head < target.to;
+    // Below the top level a block is a list or task item, whose marker sits left of its text.
+    handle.set({ box: line, empty, pos: target.from + 1, item: target.depth > 1 });
+  };
+
+  /** The pointer moved over the editor: the handle follows the block under it. */
+  const hover = (pageX: number, pageY: number) => {
+    if (dragging() !== null) return;
+    const pos = posAtCoords(editor, pageX - origin().x, pageY - origin().y);
+    if (pos === null || pos === hovered()) return;
+    hovered.set(pos);
+    placeHandle(pos);
   };
 
   const subscription = editor.subscribe(() => follow());
@@ -138,29 +164,25 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
 
   const at = (box: Box) => ({ origin: { x: origin().x + box.x, y: origin().y + box.y }, size: { width: Math.max(box.width, 1), height: box.height } });
 
-  /** The insertion boundary used by both the preview and the drop. */
-  const dropTarget = (pageX: number, pageY: number) => {
+  /** Where the dragged block lands, and the line showing it: nsh-richtext decides the place. */
+  const dropAt = (pageX: number, pageY: number) => {
     const source = dragging();
     if (source === null) return null;
     const target = posAtCoords(editor, pageX - origin().x, pageY - origin().y);
     if (target === null) return null;
-    const blocks = topLevelBlocks(editor.doc);
-    const from = blocks.findIndex((b) => b.from === source);
-    const to = blocks.findIndex((b) => target >= b.from && target < b.to);
-    if (from < 0 || to < 0 || from === to) return null;
-    const range = blocks[from];
-    const destination = blocks[to];
-    const after = to > from;
-    const box = blockRect(editor, destination.from);
+    const found = dropTarget(editor, source, target);
+    if (!found) return null;
+    const box = blockRect(editor, found.target);
+    const indent = box ? Math.max(box.x - 4, 0) : 0;
     return {
-      range,
-      target: after ? destination.to : destination.from,
-      line: box ? { x: 0, y: box.y + (after ? box.height : 0), width: hostWidth, height: 2 } : null,
+      source,
+      target,
+      line: box ? { x: indent, y: found.after ? box.y + box.height + 2 : box.y - 4, width: Math.max(hostWidth - indent, 1), height: 2 } : null,
     };
   };
 
   const previewDrop = (pageX: number, pageY: number) => {
-    dropLine.set(dropTarget(pageX, pageY)?.line ?? null);
+    dropLine.set(dropAt(pageX, pageY)?.line ?? null);
   };
 
   const cancelDrag = () => {
@@ -170,14 +192,23 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
 
   /** Drops the dragged block at the boundary shown by the insertion line. */
   const drop = (pageX: number, pageY: number) => {
-    const destination = dropTarget(pageX, pageY);
+    const destination = dropAt(pageX, pageY);
     cancelDrag();
-    if (destination) editor.run(commands.moveBlock(destination.range, destination.target));
+    if (destination) editor.run(commands.moveBlock(destination.source, destination.target));
     editor.focus();
   };
 
   return (
-    <View ref={(node: YNode) => (host = node)} class="relative flex-1" onLayout={() => void measure()}>
+    <View
+      ref={(node: YNode) => (host = node)}
+      class="relative flex-1"
+      onLayout={() => void measure()}
+      onHoverMove={(e) => hover(e.pagePosition.x, e.pagePosition.y)}
+      onHoverOut={() => {
+        hovered.set(null);
+        follow();
+      }}
+    >
       <RichEditor
         editor={editor}
         testID="rich-editor"
@@ -219,8 +250,9 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
           <BubbleMenu editor={editor} revision={props.revision} onLink={props.actions.openLink} />
         </Overlay>
       </If>
-      <If when={(focused() || dragging() !== null) && handle() !== null && bubble() === null && slashQuery() === null}>
-        <Overlay anchor={at((handle() as { box: Box }).box)} placement="left" offset={8}>
+      <If when={(focused() || hovered() !== null || dragging() !== null) && handle() !== null && bubble() === null && slashQuery() === null}>
+        {/* Anchored on the block's first line, centered on it, whatever the block's height. */}
+        <Overlay anchor={at((handle() as { box: Box }).box)} placement="left" align="center" offset={handle()?.item ? ITEM_GUTTER : 6}>
           <View class="flex-row items-center gap-0.5">
             <If when={handle()?.empty}>
               <View
@@ -250,7 +282,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
               onResponderRelease={(e) => drop(e.nativeEvent.pageX, e.nativeEvent.pageY)}
               onResponderTerminate={cancelDrag}
               onResponderTerminationRequest={() => false}
-              class="h-6 w-4 items-center justify-center rounded-md hover:bg-accent"
+              class={`h-6 w-5 items-center justify-center rounded-md hover:bg-accent ${dragging() !== null ? "bg-accent" : ""}`}
             >
               <Icon name="grip-vertical" size={14} tint={token("muted-foreground")} />
             </View>

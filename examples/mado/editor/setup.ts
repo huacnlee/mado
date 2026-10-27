@@ -1,8 +1,8 @@
-// Everything Mado tells the rich text editor lives here: the node and mark
-// names, the plugins and key bindings, the commands the toolbar, the bubble
-// menu and the slash menu run, and the classes of the document's parts.
-// The rest of the app asks this module, so a change of `nsh/base`'s
-// RichEditor API (names, extensions) is adapted in one place.
+// Everything Mado tells the rich text editor lives here. The editing itself
+// is nsh-richtext's (`crates/nsh-richtext`): its `richTextKit` extension
+// brings the schema, Markdown, the editing commands and block moving, in
+// Rust; this module names them for the toolbar, the bubble menu and the
+// slash menu, and gives the document's parts their classes.
 import {
   type RichCommand,
   type RichEditorClasses,
@@ -11,24 +11,17 @@ import {
   RichEditorPlugin,
   chain,
   createRichEditor,
-  first,
+  defineExtension,
   insertContent,
-  liftListItem,
-  markdown,
   redo,
-  setBlockType,
+  richExtension,
   setMark,
   command,
-  setTextSelection,
-  sinkListItem,
-  starterKit,
   toggleMark,
   undo,
   unsetMark,
-  wrapIn,
-  wrapInList,
-  lift,
 } from "nsh/base";
+import { RichText, type Block, type SlashItem as RichSlashItem } from "nsh-richtext";
 
 // --- Names ---------------------------------------------------------------------
 
@@ -110,14 +103,6 @@ export function currentBlock(editor: RichEditorSession): { type: string; from: n
   return { type: resolved.parent, from: resolved.start, to: resolved.end, text: editor.textBetween(resolved.start, resolved.end, "\n") };
 }
 
-const LEAVES = new Set<string>([NODE.horizontalRule, NODE.image, NODE.hardBreak]);
-
-/** A node's size in document positions, as ProseMirror counts it: a text its length, a leaf one, any other node its content and two boundaries. */
-export function nodeSize(node: RichNodeJSON): number {
-  if (node.type === "text") return node.text?.length ?? 0;
-  if (LEAVES.has(node.type)) return 1;
-  return (node.content ?? []).reduce((n, c) => n + nodeSize(c), 0) + 2;
-}
 
 // --- Commands --------------------------------------------------------------------
 
@@ -133,38 +118,33 @@ export const commands = {
   },
   /** Makes the selected textblocks `block` (a heading level, a code block or text). */
   block(block: BlockKey): RichCommand {
-    if (block === "paragraph") return setBlockType(NODE.paragraph);
-    if (block === "codeBlock") return setBlockType(NODE.codeBlock);
-    return setBlockType(NODE.heading, { level: Number(block[1]) });
+    return named("setBlockStyle", { style: block });
   },
   /** Toggles a block toggle: pressed sets it, released turns the block back into text. */
   toggleBlock(block: BlockKey, pressed: boolean): RichCommand {
-    return pressed ? commands.block(block) : commands.block("paragraph");
+    return commands.block(pressed ? block : "paragraph");
   },
-  /** Toggles a list: out of it when in it, else out of the other lists and into it. */
-  toggleList(list: ListKey, active: ListKey[]): RichCommand {
-    const itemOf = (l: ListKey) => (l === "taskList" ? NODE.taskItem : NODE.listItem);
-    if (active.includes(list)) return liftListItem(itemOf(list));
-    const out = active.map((other) => liftListItem(itemOf(other)));
-    return out.length ? chain([...out, wrapInList(NODE[list])]) : wrapInList(NODE[list]);
+  /** Toggles a list: out of it when in it, else from another list or from text into it. */
+  toggleList(list: ListKey): RichCommand {
+    return named("toggleListType", { list });
   },
   /** Toggles a quote around the selected blocks. */
-  toggleQuote(active: boolean): RichCommand {
-    return active ? lift() : wrapIn(NODE.blockquote);
+  toggleQuote(): RichCommand {
+    return named("toggleQuote", null);
   },
   /** Indents the list item (Tab). */
   indent(): RichCommand {
-    return first([NODE.listItem, NODE.taskItem].map((item) => sinkListItem(item)));
+    return named("indentItem", null);
   },
   /** Outdents the list item (Shift-Tab). */
   outdent(): RichCommand {
-    return first([NODE.listItem, NODE.taskItem].map((item) => liftListItem(item)));
+    return named("outdentItem", null);
   },
   horizontalRule(): RichCommand {
-    return insertContent({ type: NODE.horizontalRule });
+    return named("insertDivider", null);
   },
   image(src: string, alt: string): RichCommand {
-    return insertContent({ type: NODE.image, attrs: { src, alt, title: null } });
+    return named("insertImage", { src, alt });
   },
   /** Sets the link over the selection (and over the whole link the caret is in), or types `text` as a link at the caret. */
   setLink(editor: RichEditorSession, href: string, text?: string): RichCommand {
@@ -181,77 +161,46 @@ export const commands = {
   },
   /** Aligns the selected paragraphs and headings. */
   align(align: Align): RichCommand {
-    const textAlign = align === "left" ? null : align;
-    return first([NODE.heading, NODE.paragraph].map((name) => named("updateAttributes", { name, attrs: { textAlign } })));
+    return named("setAlign", { align });
   },
-  /** Replaces the `/query` the slash menu was opened with by `then`'s result. */
-  fromSlash(from: number, to: number, then: RichCommand | null): RichCommand {
-    const remove = chain([setTextSelection(from, to), command("deleteSelection")]);
-    return then ? chain([remove, then]) : remove;
+  /** Replaces the `/query` the slash menu was opened with by the item's block. */
+  fromSlash(from: number, to: number, item: SlashItem): RichCommand {
+    return named("replaceWith", { from, to, command: item.command, args: item.args });
   },
-  /** Moves the block at `range` to `target` (drag to move). */
-  moveBlock(range: { from: number; to: number }, target: number): RichCommand {
-    return named("cut", { range, targetPos: target });
+  /** Moves the block a handle at `source` moves to where dropping it at `target` puts it. */
+  moveBlock(source: number, target: number): RichCommand {
+    return named("moveBlockTo", { source, target });
   },
 };
 
-/** The top-level blocks of `doc`: their type and their range in document positions. */
-export function topLevelBlocks(doc: RichNodeJSON): { type: string; from: number; to: number }[] {
-  const blocks: { type: string; from: number; to: number }[] = [];
-  let at = 0;
-  for (const child of doc.content ?? []) {
-    const end = at + nodeSize(child);
-    blocks.push({ type: child.type, from: at, to: end });
-    at = end;
+/** The block a handle at `pos` moves: the innermost list or task item, else the top-level block. */
+export function blockAt(editor: RichEditorSession, pos: number): Block | null {
+  return RichText.blockAt(editor.doc, pos);
+}
+
+/** Where dropping the block at `source` at `target` puts it, or `null`. */
+export function dropTarget(editor: RichEditorSession, source: number, target: number) {
+  return RichText.dropTarget(editor.doc, source, target);
+}
+
+/** The box of the first line of the block at `from`: where its handle sits. */
+export function firstLineRect(editor: RichEditorSession, block: Block): Rect | null {
+  // The first position inside a textblock: one past each opening boundary.
+  for (let pos = block.from + 1; pos < block.to; pos++) {
+    const box = coordsAtPos(editor, pos);
+    if (box) return box;
   }
-  return blocks;
+  return null;
 }
 
-/** The text bounds of a top-level block, including nested quotes and lists. */
-export function blockRect(editor: RichEditorSession, from: number): Rect | null {
-  const blocks = topLevelBlocks(editor.doc);
-  const index = blocks.findIndex((block) => block.from === from);
-  const node = editor.doc.content?.[index];
-  if (!node) return null;
-  let bounds: Rect | null = null;
-  const include = (box: Rect | null) => {
-    if (!box) return;
-    if (!bounds) {
-      bounds = box;
-      return;
-    }
-    const x = Math.min(bounds.x, box.x);
-    const y = Math.min(bounds.y, box.y);
-    bounds = {
-      x, y,
-      width: Math.max(bounds.x + bounds.width, box.x + box.width) - x,
-      height: Math.max(bounds.y + bounds.height, box.y + box.height) - y,
-    };
-  };
-  const visit = (child: RichNodeJSON, pos: number) => {
-    if (child.type === NODE.paragraph || child.type === NODE.heading || child.type === NODE.codeBlock) {
-      include(coordsAtPos(editor, pos + 1));
-      include(coordsAtPos(editor, pos + nodeSize(child) - 1));
-      return;
-    }
-    let at = pos + 1;
-    for (const nested of child.content ?? []) {
-      visit(nested, at);
-      at += nodeSize(nested);
-    }
-  };
-  visit(node, from);
-  return bounds;
-}
-
-/** Where moving the top-level block at `pos` one place up (`-1`) or down (`1`) puts it: the command, or `null` at an end. */
-export function moveBlockBy(editor: RichEditorSession, pos: number, by: -1 | 1): RichCommand | null {
-  const blocks = topLevelBlocks(editor.doc);
-  const index = blocks.findIndex((b) => pos >= b.from && pos < b.to);
-  const other = blocks[index + by];
-  if (index < 0 || !other) return null;
-  const block = blocks[index];
-  return commands.moveBlock({ from: block.from, to: block.to }, by < 0 ? other.from : other.to);
+/** The bounds of the block at `block`: its first line's top to its last line's bottom. */
+export function blockRect(editor: RichEditorSession, block: Block): Rect | null {
+  const first = firstLineRect(editor, block);
+  let last: Rect | null = null;
+  for (let pos = block.to - 1; pos > block.from && !last; pos--) last = coordsAtPos(editor, pos);
+  if (!first || !last) return first;
+  const y = Math.min(first.y, last.y);
+  return { x: first.x, y, width: first.width, height: Math.max(first.y + first.height, last.y + last.height) - y };
 }
 
 /** The marks active at the selection. */
@@ -261,14 +210,14 @@ export function activeMarks(editor: RichEditorSession): MarkKey[] {
 
 /** The textblock type at the selection. */
 export function activeBlock(editor: RichEditorSession): BlockKey | null {
-  if (NODE.codeBlock && editor.isActive(NODE.codeBlock)) return "codeBlock";
+  if (editor.isActive(NODE.codeBlock)) return "codeBlock";
   for (const level of [1, 2, 3, 4] as const) if (editor.isActive(NODE.heading, { level })) return `h${level}`;
   return editor.isActive(NODE.paragraph) ? "paragraph" : null;
 }
 
 /** The lists around the selection, innermost last. */
 export function activeLists(editor: RichEditorSession): ListKey[] {
-  return (["bulletList", "orderedList", "taskList"] as const).filter((list) => NODE[list] && editor.isActive(NODE[list] as string));
+  return (["bulletList", "orderedList", "taskList"] as const).filter((list) => editor.isActive(NODE[list]));
 }
 
 export function activeAlign(editor: RichEditorSession): Align {
@@ -280,34 +229,12 @@ export function activeAlign(editor: RichEditorSession): Align {
 
 // --- The slash menu's items --------------------------------------------------------
 
-export interface SlashItem {
-  id: string;
-  label: string;
-  hint: string;
-  icon: import("../components/lucide").LucideName;
-  keywords: string;
-  command: (editor: RichEditorSession) => RichCommand | null;
-}
-
-export const SLASH_ITEMS: SlashItem[] = [
-    { id: "text", label: "Text", hint: "Plain paragraph", icon: "pilcrow", keywords: "paragraph text", command: () => commands.block("paragraph") },
-    { id: "h1", label: "Heading 1", hint: "Big section heading", icon: "heading-1", keywords: "title h1", command: () => commands.block("h1") },
-    { id: "h2", label: "Heading 2", hint: "Medium section heading", icon: "heading-2", keywords: "subtitle h2", command: () => commands.block("h2") },
-    { id: "h3", label: "Heading 3", hint: "Small section heading", icon: "heading-3", keywords: "h3", command: () => commands.block("h3") },
-    { id: "bullet", label: "Bulleted list", hint: "A simple list", icon: "list", keywords: "ul unordered bullet", command: (e) => commands.toggleList("bulletList", activeLists(e)) },
-    { id: "ordered", label: "Numbered list", hint: "A list with numbers", icon: "list-ordered", keywords: "ol ordered number", command: (e) => commands.toggleList("orderedList", activeLists(e)) },
-    { id: "task", label: "Task list", hint: "Track tasks with checkboxes", icon: "list-todo", keywords: "todo check task", command: (e) => commands.toggleList("taskList", activeLists(e)) },
-    { id: "quote", label: "Quote", hint: "Capture a quote", icon: "text-quote", keywords: "blockquote citation", command: (e) => commands.toggleQuote(e.isActive(NODE.blockquote)) },
-    { id: "code", label: "Code block", hint: "Code with a fence", icon: "square-code", keywords: "code pre fence", command: () => commands.block("codeBlock") },
-    { id: "rule", label: "Divider", hint: "A horizontal rule", icon: "minus", keywords: "hr rule separator divider", command: () => commands.horizontalRule() },
-    { id: "image", label: "Image", hint: "Insert an image by path or URL", icon: "image", keywords: "picture photo img", command: () => null },
-];
+/** A block the slash menu inserts (nsh-richtext's), with its icon typed. */
+export type SlashItem = RichSlashItem & { icon: import("../components/lucide").LucideName };
 
 /** The slash menu's items matching `query` (by label or keyword). */
 export function slashMatches(query: string): SlashItem[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return SLASH_ITEMS;
-  return SLASH_ITEMS.filter((item) => item.label.toLowerCase().includes(q) || item.keywords.includes(q));
+  return RichText.slashItems(query) as SlashItem[];
 }
 
 // --- The editor ---------------------------------------------------------------------
@@ -323,14 +250,19 @@ export interface MadoEditor {
   handlers: { shortcut: ((key: string) => void) | null; slash: ((key: string) => void) | null };
 }
 
+/** The editor's document as Markdown: nsh-richtext's, which keeps `==highlights==`. */
+export function markdownOf(editor: RichEditorSession): string {
+  return RichText.toMarkdown(editor.doc);
+}
+
 /** Makes an editor holding `markdown`. */
 export function createMadoEditor(markdownText: string): MadoEditor {
   const shortcuts = new RichEditorPlugin("mado-shortcuts");
   const slash = new RichEditorPlugin("mado-slash");
   const editor = createRichEditor({
-    content: markdownText,
-    format: "markdown",
-    plugins: [slash, shortcuts, markdown(), starterKit()],
+    content: RichText.fromMarkdown(markdownText) as RichNodeJSON,
+    // The app's key captures bind before the kit's keymap (Enter, the arrows), as a higher priority runs first.
+    extensions: [defineExtension({ name: "madoKeys", priority: 1000, addProseMirrorPlugins: () => [slash, shortcuts] }), richExtension("richTextKit")],
   });
   const handlers: MadoEditor["handlers"] = { shortcut: null, slash: null };
   shortcuts.captureKeys(SHORTCUT_KEYS, (key) => handlers.shortcut?.(key));
@@ -340,7 +272,7 @@ export function createMadoEditor(markdownText: string): MadoEditor {
 }
 
 /** The editor's keys Mado handles itself, as `RichEditorPlugin.captureKeys` names them. */
-export const SHORTCUT_KEYS = ["Mod-s", "Mod-k", "Mod-n", "Mod-o", "Mod-/", "Alt-ArrowUp", "Alt-ArrowDown"];
+export const SHORTCUT_KEYS = ["Mod-s", "Mod-k", "Mod-n", "Mod-o", "Mod-/"];
 /** The keys the slash menu takes while open. */
 export const SLASH_KEYS = ["ArrowUp", "ArrowDown", "Enter", "Escape", "Tab"];
 

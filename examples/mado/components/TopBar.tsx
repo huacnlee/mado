@@ -19,6 +19,8 @@ export interface TopBarProps {
   openOpen: boolean;
   setOpenOpen: (open: boolean) => void;
   onOpen: (file: string) => void;
+  /** Asks for a file with the system's open dialog. */
+  onOpenDialog: () => void;
   onNew: (name: string) => void;
   onSave: () => void;
   onRename: (name: string) => void;
@@ -45,6 +47,7 @@ export function TopBar(props: TopBarProps) {
   };
   return (
     <View testID="top-bar" class={`${BAR} h-12 flex-row items-center gap-1 border-b pr-2`} style={{ paddingLeft: props.inset + 8 }} desktop={{ windowDrag: true }}>
+      <IconButton icon="folder-open" label="Open" shortcut={hint("mod+o")} testID="open-button" onPress={props.onOpenDialog} />
       <Popover
         open={props.openOpen}
         onOpenChange={(open) => props.setOpenOpen(open)}
@@ -52,8 +55,8 @@ export function TopBar(props: TopBarProps) {
         align="start"
         popupClass={PANE}
         trigger={
-          <View tooltip={`Open  ${hint("mod+o")}`} testID="open-button" accessibilityLabel="Open" role="button" class="size-8 items-center justify-center rounded-(--radius-control) hover:bg-accent">
-            <Icon name="folder-open" size={16} />
+          <View tooltip="Recent files" testID="recent-button" accessibilityLabel="Recent files" role="button" class="h-8 w-5 items-center justify-center rounded-(--radius-control) hover:bg-accent">
+            <Icon name="chevron-down" size={14} />
           </View>
         }
       >

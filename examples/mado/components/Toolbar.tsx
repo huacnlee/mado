@@ -140,8 +140,8 @@ export function Toolbar(props: { editor: RichEditorSession; revision: number; pa
             label={item().label}
             shortcut={hint(item().keys)}
             active={lists().includes(item().value)}
-            disabled={!can(commands.toggleList(item().value, lists()))}
-            onPress={() => run(commands.toggleList(item().value, lists()))}
+            disabled={!can(commands.toggleList(item().value))}
+            onPress={() => run(commands.toggleList(item().value))}
           />
         )}
       </Each>
@@ -150,8 +150,8 @@ export function Toolbar(props: { editor: RichEditorSession; revision: number; pa
         label="Quote"
         shortcut={hint("mod+shift+b")}
         active={quoted()}
-        disabled={!can(commands.toggleQuote(quoted()))}
-        onPress={() => run(commands.toggleQuote(quoted()))}
+        disabled={!can(commands.toggleQuote())}
+        onPress={() => run(commands.toggleQuote())}
       />
       <IconButton
         icon="square-code"

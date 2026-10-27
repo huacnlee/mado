@@ -4,6 +4,10 @@
   "version": "0.1.3",
   "build": 4,
   "icon": "assets/mado.png",
+  "rust": [
+    "../../crates/nsh-richtext",
+    "native"
+  ],
   "capabilities": {
     "fs": {
       "read": [

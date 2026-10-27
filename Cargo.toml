@@ -1,0 +1,20 @@
+[workspace]
+resolver = "3"
+members = ["crates/nsh-richtext", "examples/mado/native"]
+exclude = [".nsh-src"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/huacnlee/mado"
+
+# NSH's RichEditor is newer than its 0.3.0 release: `.cargo/config.toml`
+# patches every nsh crate to `.nsh-src`, NSH at NSH_REV (scripts/setup-nsh.sh)
+# with packaging/patches applied.
+[workspace.dependencies]
+nsh-core = "0.3.0"
+nsh-base = "0.3.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+nsh-richtext = { path = "crates/nsh-richtext" }

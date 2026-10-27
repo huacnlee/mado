@@ -191,13 +191,21 @@ test("the image panel inserts an image with its description", async () => {
   expect(text).toContain("![Example image](images/example.png)");
 });
 
-test("nested list blocks have a drag handle and can move as a whole", async () => {
+test("list items have a drag handle and move among their siblings", async () => {
   const app = await openMado({ files: { "list.md": "- One\n- Two\n\nAfter\n" }, recent: ["list.md"] });
   await app.press("One");
   await app.waitFor("id:block-grip");
   await app.keyboard.press("alt+down");
-  const text = await saveAndRead(app, "list.md", (t) => t.startsWith("After"));
-  expect(text).toMatch(/[-*] One\n[-*] Two/);
+  const text = await saveAndRead(app, "list.md", (t) => /Two\n[-*] One/.test(t));
+  expect(text).toMatch(/^[-*] Two\n[-*] One\n\nAfter/);
+});
+
+test("a top-level block moves past a whole list", async () => {
+  const app = await openMado({ files: { "list.md": "Before\n\n- One\n- Two\n" }, recent: ["list.md"] });
+  await app.press("Before");
+  await app.keyboard.press("alt+down");
+  const text = await saveAndRead(app, "list.md", (t) => t.trim().endsWith("Before"));
+  expect(text).toMatch(/^[-*] One\n[-*] Two\n\nBefore/);
 });
 
 test("app shortcuts work while the rich editor has focus", async () => {
@@ -209,4 +217,25 @@ test("app shortcuts work while the rich editor has focus", async () => {
   await app.press("Focused editor");
   await app.keyboard.press("mod+n");
   await app.waitFor("Untitled.md");
+});
+
+test("hovering a list item shows its handle, and dragging it moves the item alone", async () => {
+  const app = await openMado({ files: { "drag.md": "Intro\n\n- One\n- Two\n- Three\n" }, recent: ["drag.md"] });
+  await app.waitFor("Three");
+  await app.hover("Two");
+  await app.waitFor("id:block-grip");
+  // Down over "Three": the item lands after it, in the list.
+  await app.drag("id:block-grip", { x: 0, y: 48 });
+  const text = await saveAndRead(app, "drag.md", (t) => /Three\n[-*] Two/.test(t));
+  expect(text).toMatch(/^Intro\n\n[-*] One\n[-*] Three\n[-*] Two/);
+});
+
+test("==highlights== load as highlights and are saved back", async () => {
+  const app = await openMado({ files: { "hl.md": "Some ==marked== words\n" }, recent: ["hl.md"] });
+  await app.waitFor("Some marked words");
+  await app.press("Some marked words");
+  await app.keyboard.press("end");
+  await typeInEditor(app, ".");
+  const text = await saveAndRead(app, "hl.md", (t) => t.includes("words."));
+  expect(text.trim()).toBe("Some ==marked== words.");
 });

@@ -1,3 +1,4 @@
 .nsh/
 target/
 dist/
+.nsh-src

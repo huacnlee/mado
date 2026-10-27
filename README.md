@@ -1,12 +1,57 @@
-# Mado
+# nsh-richtext
+
+A complete rich text editing kit for [Native Shell (NSH)](https://github.com/longbridge/nsh) apps, in Rust. NSH's
+`RichEditor` is the kernel, as ProseMirror is; nsh-richtext is the layer apps build with, as Tiptap is: extensions,
+named commands and the queries an editor's toolbar, bubble menu, slash menu and block handles need. It renders with
+each platform's own UI on macOS, Windows, Linux and the web.
+
+**Mado** (`examples/mado`), a Markdown editor, is its example: a whole app built on the kit. `examples/minimal` is
+the smallest one: the kit's extension, a toolbar of its commands and the document as Markdown.
+
+```
+crates/nsh-richtext/   the kit (Rust): extensions, commands, block moving, slash items, text counts
+examples/mado/         Mado: a TSX app on the kit, with a small crate of its own (native/, the open dialog)
+examples/minimal/      the smallest app on the kit
+```
+
+## Using it
+
+Add the crate to an NSH app with Rust (`nsh.json` `"rust"`), then use its extension and its module in TSX:
+
+```tsx
+import { command, createRichEditor, richExtension, RichEditor } from "nsh/base";
+import { RichText } from "nsh-richtext";
+
+const editor = createRichEditor({
+  extensions: [richExtension("richTextKit", { starterKit: { heading: { levels: [1, 2, 3] } } })],
+  content: "# Hello",
+  format: "markdown",
+});
+
+editor.run(command("setBlockStyle", { style: "h2" }));
+editor.run(command("moveBlockDown"));
+RichText.slashItems("head");          // the slash menu's blocks matching "head"
+<RichEditor editor={editor} />;
+```
+
+| Extension (`richExtension(name)`) | What it brings |
+|---|---|
+| `richTextKit` | All of the below with NSH's starter kit (`starterKit` configures it); any part off with `{ name: false }` |
+| `markdown` | Markdown shortcuts as you type, Markdown paste, copy as Markdown |
+| `editing` | `setBlockStyle({ style })`, `toggleListType({ list })`, `toggleQuote`, `indentItem`, `outdentItem`, `setAlign({ align })`, `insertDivider`, `insertImage({ src, alt })`, `replaceWith({ from, to, command, args })` |
+| `blockMove` | `moveBlockUp` / `moveBlockDown` (Alt-↑ / Alt-↓), `moveBlockTo({ source, target })`: a list or task item moves among its siblings, other blocks at the top level |
+
+`RichText` (the crate's module): `fromMarkdown(text)` / `toMarkdown(doc)` (Markdown with `==highlight==`, which NSH's own format drops), `blockAt(doc, pos)` and `dropTarget(doc, source, target)` for block handles and
+drag and drop, `slashItems(query)`, `countWords(text)`, `readingMinutes(words)`.
+
+From Rust, the extensions are plain `nsh_base` `Extension`s: `nsh_richtext::kit::rich_text_kit()`, `kit::blocks()`, ...
+
+## Mado
 
 Mado opens Markdown files and edits them as documents. Headings, lists, tasks, quotes, code and links take their
 shape as you type, and the file stays plain Markdown that every other tool reads.
 
-Mado is built with [Native Shell (NSH)](https://github.com/longbridge/nsh): one TSX app, drawn with each platform's
-own UI on macOS, Windows and Linux, with its rich text editor running natively in NSH's `RichEditor`.
-
-## Features
+### Features
 
 - **Visual editing.** Markdown shortcuts as you type (`#` headings, `-` / `1.` lists, `[ ]` tasks, `>` quotes,
   fenced code, `---` rules, `**bold**`, `_italic_`, `` `code` ``, `~~strike~~`, `==highlight==`), Markdown and HTML
@@ -18,16 +63,16 @@ own UI on macOS, Windows and Linux, with its rich text editor running natively i
   or remove a link.
 - **A slash menu**: `/` at the start of a line lists the blocks to insert; type to filter, arrows and Enter to pick.
   An empty line shows a `+` that opens it.
-- **Blocks move** by dragging their handle, or with Alt-↑ / Alt-↓.
+- **Blocks move** by dragging their handle, or with Alt-↑ / Alt-↓; a list or task item moves on its own.
 - **Source mode**: the Markdown itself in a code editor with Markdown highlighting; switching back and forth keeps
   every change (⌘/).
-- **Files**: open by path or from the folder and recent lists (⌘O), new files (⌘N), rename by pressing the title,
+- **Files**: open with the system's dialog (⌘O) or from the folder and recent lists, new files (⌘N), rename by pressing the title,
   delete, save (⌘S) and autosave, with the edited state in the title bar and the status bar.
 - **A status bar** with words, characters and reading time.
 - **Solid Glass**: smoky glass panes with an emerald accent, dark by default, with light and system appearances one
   press away.
 
-## Install
+### Install
 
 Releases are on [GitHub](https://github.com/huacnlee/mado/releases): macOS (Apple silicon and Intel), Linux (x86_64
 and ARM64), Windows (x86_64) and a web build.
@@ -56,37 +101,33 @@ From a clone, with `nsh` on `PATH`: `makepkg -si`.
 
 ## Develop
 
-Mado is a TSX app: `App.tsx` is the window, `components/` its parts, `editor/setup.ts` everything it tells the rich
-text editor (schema names, plugins, commands, classes), and `store/` the document, the files and the settings.
-`nsh.json` declares the app and its file access (`fs` under the home directory); `theme.json` holds its design
-tokens. New documents go to `~/Documents/Mado`.
-
-Use the pinned NSH toolchain and geometry fix described in
-[packaging/patches/README.md](packaging/patches/README.md). With that `nsh` on `PATH`:
+NSH's `RichEditor` is newer than its last release, so the kit builds against NSH at the commit in `NSH_REV`, with
+the fixes in [packaging/patches](packaging/patches/README.md). `scripts/setup-nsh.sh` checks it out into `.nsh-src`,
+applies them and builds its `nsh`; `.cargo/config.toml` points every nsh crate there, so the kit, Mado's crate and
+the hosts `nsh` builds for them share one NSH.
 
 ```sh
-nsh run                       # Mado in a window, reloading as you save
-nsh check                     # type check
-nsh test                      # the tests in tests/, headless
-nsh test --target macos       # the same tests in a macOS window (also linux, windows)
-nsh package --target macos    # Mado.app in .nsh/out (also linux, windows, web)
+scripts/setup-nsh.sh                      # .nsh-src and .nsh-src/target/release/nsh
+export PATH="$PWD/.nsh-src/target/release:$PATH"
+cargo test --workspace                    # the kit's tests
+nsh run examples/mado                     # Mado in a window, reloading as you save
+nsh check examples/mado                   # type check
+nsh test examples/mado                    # Mado's tests, headless
+nsh package examples/mado --target macos  # Mado.app in examples/mado/.nsh/out (also linux, windows, web)
 ```
 
-`python3 scripts/test-install.py` tests the installer, and `pwsh scripts/test-install.ps1` the Windows one.
+In Mado, `App.tsx` is the window, `components/` its parts, `editor/setup.ts` what it asks of the kit (command names,
+classes), `store/` the document, the files and the settings, and `native/` its own Rust (the open dialog). New
+documents go to `~/Documents/Mado`. `python3 scripts/test-install.py` tests the installer, and
+`pwsh scripts/test-install.ps1` the Windows one.
 
 ## Release
 
-Tag a version that matches `nsh.json`'s `version` (`v0.1.3`) and push the tag. The release workflow builds NSH at
-the commit `NSH_REF` names, packages Mado with `nsh package` for each target, writes the archives
+Tag a version that matches `examples/mado/nsh.json`'s `version` (`v0.1.3`) and push the tag. The release workflow builds NSH at
+the commit `NSH_REV` names, packages Mado with `nsh package` for each target, writes the archives
 `mado-<version>-<target>.tar.gz` (`.zip` on Windows) and their `SHA256SUMS`, and publishes them as a GitHub release.
 
 ## License
 
 MIT. Mado's theme comes from [Solid Glass](https://github.com/deeplethe/solid-glass) (MIT) and its icons from
 [Lucide](https://lucide.dev) (ISC): see [NOTICE.md](NOTICE.md).
-
-A release can also be rebuilt with the workflow's optional `runtime_run` and
-`web_runtime_run` inputs while those build artifacts are retained. It verifies
-the source NSH commit, patch set and archive checksums before reusing the generic
-runtimes; the app code, metadata, macOS signatures and release archives are built
-again. Omit the inputs to build every runtime from source.
