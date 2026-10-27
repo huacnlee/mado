@@ -272,7 +272,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
         </Overlay>
       </If>
       {/* While a drag runs the handle stays: it holds the press (a dragged table selects, which would hide it). */}
-      <If when={handle() !== null && (dragging() !== null || ((focused() || hovered() !== null) && !typing() && bubble() === null && !table() && slashQuery() === null))}>
+      <If when={handle() !== null && (dragging() !== null || ((focused() || hovered() !== null) && !typing() && !table() && slashQuery() === null))}>
         {/* Anchored on the block's first line, centered on it, whatever the block's height. */}
         <Overlay anchor={at((handle() as { box: Box }).box)} placement="left" align="center" offset={handle()?.item ? ITEM_GUTTER : 6}>
           <View class="flex-row items-center gap-0.5">

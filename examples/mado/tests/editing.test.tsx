@@ -325,3 +325,15 @@ test("a block command saves no trailing blank lines", async () => {
   const text = await saveAndRead(app, "end.md", (t) => t.startsWith("## "));
   expect(text).toBe("## Para\n");
 });
+
+test("the handle carries every block a selection spans", async () => {
+  const app = await openMado({ files: { "range.md": "One\n\nTwo\n\nThree\n\nFour\n" }, recent: ["range.md"] });
+  await app.press("One");
+  await app.keyboard.press("home");
+  await app.keyboard.press("shift+down");
+  await app.hover("One");
+  await app.waitFor("id:block-grip");
+  await app.drag("id:block-grip", { x: 0, y: 2000 });
+  const text = await saveAndRead(app, "range.md", (t) => t.startsWith("Three"));
+  expect(text).toBe("Three\n\nFour\n\nOne\n\nTwo\n");
+});
