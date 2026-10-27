@@ -156,6 +156,63 @@ pub fn move_block_to(source: usize, target: usize) -> BoxCommand {
     })
 }
 
+/// Shift-↑ / Shift-↓ over blocks (Tiptap's NodeRange): once a selection
+/// spans more than one sibling block, it covers them whole and grows or
+/// shrinks by a block at its head's end; within one block the keys extend by
+/// line as usual. The handle then carries the blocks together.
+pub fn extend_blocks(by: i32) -> BoxCommand {
+    command(move |state, dispatch| {
+        let selection = state.selection();
+        if selection.empty() {
+            return false;
+        }
+        let doc = state.doc();
+        let (Ok(anchor), Ok(head)) = (
+            doc.resolve(selection.anchor()),
+            doc.resolve(selection.head()),
+        ) else {
+            return false;
+        };
+        let Some(range) = anchor.block_range(&head, None) else {
+            return false;
+        };
+        let (first, last) = (range.start_index(), range.end_index());
+        if last - first < 2 {
+            return false;
+        }
+        let parent = range.parent();
+        let start = range.start();
+        let offset = |index: usize| {
+            start
+                + (first..index)
+                    .map(|i| parent.child(i).node_size())
+                    .sum::<usize>()
+        };
+        let forward = head.pos >= anchor.pos;
+        // The fixed end keeps its block; the head's end moves by one.
+        let (first, last) = match (forward, by > 0) {
+            (true, true) => (first, (last + 1).min(parent.child_count())),
+            (true, false) => (first, last - 1),
+            (false, false) => (first.saturating_sub(1), last),
+            (false, true) => (first + 1, last),
+        };
+        let (from, to) = (offset(first), offset(last));
+        let (Ok(a), Ok(b)) = (doc.resolve(from), doc.resolve(to)) else {
+            return false;
+        };
+        let (a, h) = if forward { (a, b) } else { (b, a) };
+        let mut tr = state.tr();
+        tr.set_selection(nsh_base::rich_editor::state::TextSelection::between(
+            &a, &h, None,
+        ))
+        .scroll_into_view();
+        if let Some(dispatch) = dispatch {
+            dispatch(tr);
+        }
+        true
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use nsh_base::rich_editor::{
@@ -261,5 +318,34 @@ mod tests {
         .unwrap();
         assert_eq!(texts(&block), ["one", "two", "three", "A", "B"]);
         assert!(drop_target(&doc, pos_of(&doc, "two"), pos_of(&doc, "two")).is_none());
+    }
+
+    #[test]
+    fn shift_arrows_grow_and_shrink_a_selection_by_whole_blocks() {
+        let doc = doc();
+        let (one, two) = (pos_of(&doc, "one"), pos_of(&doc, "two"));
+        let config = EditorStateConfig::new(starter::schema())
+            .doc(doc.clone())
+            .selection(TextSelection::create(&doc, one + 1, Some(two + 1)));
+        let state = EditorState::create(config).unwrap();
+        let grown = |state: &EditorState, by| {
+            let mut out = None;
+            extend_blocks(by)(state, Some(&mut |tr| out = Some(state.apply(tr).unwrap())));
+            out.unwrap()
+        };
+        let down = grown(&state, 1);
+        let three = pos_of(&doc, "three");
+        assert_eq!(
+            (down.selection().from(), down.selection().to()),
+            (one, three + 5)
+        );
+        let up = grown(&down, -1);
+        assert_eq!((up.selection().from(), up.selection().to()), (one, two + 3));
+        // Inside one block the keys extend by line.
+        let config = EditorStateConfig::new(starter::schema())
+            .doc(doc.clone())
+            .selection(TextSelection::create(&doc, one, Some(one + 2)));
+        let single = EditorState::create(config).unwrap();
+        assert!(!extend_blocks(1)(&single, None));
     }
 }

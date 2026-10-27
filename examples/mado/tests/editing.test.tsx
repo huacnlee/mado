@@ -337,3 +337,14 @@ test("the handle carries every block a selection spans", async () => {
   const text = await saveAndRead(app, "range.md", (t) => t.startsWith("Three"));
   expect(text).toBe("Three\n\nFour\n\nOne\n\nTwo\n");
 });
+
+test("Shift-arrows grow a selection across blocks by whole blocks", async () => {
+  const app = await openMado({ files: { "sel.md": "One\n\nTwo\n\nThree\n\nFour\n" }, recent: ["sel.md"] });
+  await app.press("One");
+  await app.keyboard.press("home");
+  await app.keyboard.press("shift+down");
+  await app.keyboard.press("shift+down");
+  await typeKeys(app, "X");
+  const text = await saveAndRead(app, "sel.md", (t) => t.startsWith("X"));
+  expect(text).toBe("X\n\nFour\n");
+});

@@ -16,7 +16,7 @@ use nsh_base::rich_editor::{
 };
 use serde_json::{Value, json};
 
-use crate::blocks::{move_block_by, move_block_to};
+use crate::blocks::{extend_blocks, move_block_by, move_block_to};
 
 /// The node types a block style sets, by the names the commands take.
 pub const BLOCK_STYLES: [&str; 8] = ["paragraph", "h1", "h2", "h3", "h4", "h5", "h6", "codeBlock"];
@@ -79,6 +79,8 @@ pub fn blocks() -> Extension {
             vec![
                 ("Alt-ArrowUp".into(), move_block_by(-1)),
                 ("Alt-ArrowDown".into(), move_block_by(1)),
+                ("Shift-ArrowUp".into(), extend_blocks(-1)),
+                ("Shift-ArrowDown".into(), extend_blocks(1)),
             ]
         })
 }
