@@ -15,6 +15,7 @@ git fetch --quiet origin
 git checkout --quiet --force "$rev"
 git clean --quiet -fd crates
 for patch in "$root"/packaging/patches/*.patch; do
+  [ -e "$patch" ] || continue  # none while the pinned commit has every fix
   git apply "$patch"
 done
 profile=${NSH_PROFILE:-release}

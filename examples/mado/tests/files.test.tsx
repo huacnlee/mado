@@ -1,7 +1,7 @@
 // Files: creating, saving, reopening, renaming and deleting, the edited
 // state, and errors shown where they happen.
 import { expect, test } from "nsh/test";
-import { fileKey, newFile, openMado, saveAndRead, typeInEditor } from "./helpers";
+import { fileKey, newFile, openMado, saveAndRead, typeInEditor, typeKeys } from "./helpers";
 
 test("a new file is created in the folder and saved with Mod-s", async () => {
   const app = await openMado();
@@ -89,7 +89,7 @@ test("saving the untitled document keeps its existing content", async () => {
   await app.waitFor("id:source-editor");
   await app.press("text:/# Welcome to Mado/");
   await app.keyboard.press("mod+a");
-  await app.type("id:source-editor", "A draft before its first save");
+  await typeKeys(app, "A draft before its first save");
   const text = await saveAndRead(app, "Untitled.md", (t) => t.includes("A draft before its first save"));
   expect(text).toBe("A draft before its first save");
   await app.waitFor("Untitled.md");
@@ -126,6 +126,8 @@ test("opening another file saves pending edits to the previous file", async () =
 test("the web creates and saves documents without a native home directory", async () => {
   const app = await openMado({ platform: "web", folder: "" });
   await newFile(app);
+  // On a native target (`--target linux`) the platform is the real one, with a disk: nothing of the web's to test.
+  if (app.texts().some((t) => t.startsWith("Saved /home") || t.startsWith("Saved /Users") || /^Saved [A-Z]:\\/.test(t))) return;
   await typeInEditor(app, "Browser draft");
   await app.keyboard.press("mod+s");
   await app.waitUntil(() => (app.storage()["mado.file:/Documents/Mado/Untitled.md"] ?? "").includes("Browser draft"));

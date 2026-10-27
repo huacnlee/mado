@@ -26,7 +26,7 @@ runs:
       run: |
         # Windows checkouts may have CRLF; the patches and their sources must agree.
         git -C .nsh-src -c core.autocrlf=false checkout-index --all --force
-        for patch in packaging/patches/*.patch; do git -C .nsh-src apply "$GITHUB_WORKSPACE/$patch"; done
+        for patch in packaging/patches/*.patch; do [ -e "$patch" ] || continue; git -C .nsh-src apply "$GITHUB_WORKSPACE/$patch"; done
     - uses: dtolnay/rust-toolchain@stable
       with:
         targets: ${{ inputs.web == 'true' && 'wasm32-unknown-unknown' || '' }}
