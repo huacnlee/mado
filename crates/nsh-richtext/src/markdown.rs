@@ -63,7 +63,12 @@ pub fn serialize(doc: &Node) -> Result<String, String> {
     let mut json = doc.to_json();
     delimit(&mut json, HIGHLIGHT, DELIMITER, DELIMITER);
     for (k, (mark, ..)) in TAGS.iter().enumerate() {
-        delimit(&mut json, mark, &placeholder(k, false), &placeholder(k, true));
+        delimit(
+            &mut json,
+            mark,
+            &placeholder(k, false),
+            &placeholder(k, true),
+        );
     }
     let plain = Node::from_json(doc.ty().schema(), &json).map_err(|e| e.to_string())?;
     let markdown = format().serialize(&plain).map_err(|e| e.to_string())?;
@@ -152,9 +157,15 @@ fn pair_marks(node: &mut Value, mark: &str, open: &str, close: &str) {
         if let Some(text) = child.get("text").and_then(Value::as_str) {
             let mut from = 0;
             loop {
-                let o = text[from..].find(open).map(|at| (from + at, open.len(), true));
+                let o = text[from..]
+                    .find(open)
+                    .map(|at| (from + at, open.len(), true));
                 let c = (open != close)
-                    .then(|| text[from..].find(close).map(|at| (from + at, close.len(), false)))
+                    .then(|| {
+                        text[from..]
+                            .find(close)
+                            .map(|at| (from + at, close.len(), false))
+                    })
                     .flatten();
                 let Some((at, len, opens)) = [o, c].into_iter().flatten().min_by_key(|t| t.0)
                 else {
@@ -311,7 +322,12 @@ mod tests {
         assert_eq!(runs[0]["marks"][0]["type"], "underline");
         // A lone `<` is plain text, escaped.
         assert_eq!(serialize(&doc).unwrap(), md.replace("a <u", "a \\<u"));
-        assert_eq!(parse(&starter::schema(), &serialize(&doc).unwrap()).unwrap().to_json(), json);
+        assert_eq!(
+            parse(&starter::schema(), &serialize(&doc).unwrap())
+                .unwrap()
+                .to_json(),
+            json
+        );
     }
 
     #[test]

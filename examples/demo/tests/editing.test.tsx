@@ -121,6 +121,7 @@ test("switching to Source and back keeps the document", async () => {
 test("edits in Source show in Visual", async () => {
   const app = await openDemo({ files: { "s.md": "Plain\n" }, recent: ["s.md"], mode: "source" });
   await app.waitFor("id:source-editor");
+  await app.waitFor("Plain");
   await app.press("Plain");
   await app.keyboard.press("end");
   await app.type("id:source-editor", "\n\n## Added in source");
