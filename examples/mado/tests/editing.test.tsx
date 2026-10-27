@@ -1,7 +1,7 @@
 // Editing: Markdown shortcuts as you type, the toolbar, the link editor,
 // the slash menu, lists, undo, and the Visual / Source switch.
 import { expect, test } from "nsh/test";
-import { newFile, openMado, saveAndRead, selectBlock, typeInEditor, typeKeys } from "./helpers";
+import { holdKeys, newFile, openMado, saveAndRead, selectBlock, typeInEditor, typeKeys } from "./helpers";
 
 test("# and a space make a heading, - a list, [ ] a task", async () => {
   const app = await openMado();
@@ -369,4 +369,33 @@ test("a new document takes the focus and offers its blocks on the empty line", a
   await typeKeys(app, "item");
   const text = await saveAndRead(app, "Untitled.md", (t) => t.includes("item"));
   expect(text).toBe("- item\n");
+});
+
+test("Mod-click opens a link while editing", async () => {
+  // The link fills the line, so a press at its middle is on it.
+  const label = "a link long enough to run across the whole line of the editor, from its left edge past its middle to the right";
+  const app = await openMado({ files: { "link.md": `[${label}](https://example.com)\n` }, recent: ["link.md"] });
+  await app.waitFor(label);
+  await app.press(label);
+  expect(app.openedUrls()).toEqual([]);
+  // Past the double-click interval: a second, separate click.
+  await app.wait(600);
+  // Headless only: a real target holds no keys yet.
+  if (!(await holdKeys(app, "mod"))) return;
+  await app.press(label);
+  await app.keyboard.up("mod");
+  await app.waitUntil(() => app.openedUrls().length > 0);
+  expect(app.openedUrls()).toEqual(["https://example.com"]);
+});
+
+test("a Mod-drag across blocks selects them whole", async () => {
+  const app = await openMado({ files: { "md.md": "First line\n\nSecond line\n\nThird\n" }, recent: ["md.md"] });
+  await app.waitFor("Third");
+  // Headless only: a real target holds no keys yet.
+  if (!(await holdKeys(app, "mod"))) return;
+  await app.drag("First line", { x: 0, y: 44 });
+  await app.keyboard.up("mod");
+  await typeKeys(app, "X");
+  const text = await saveAndRead(app, "md.md", (t) => t.startsWith("X"));
+  expect(text).toBe("X\n\nThird\n");
 });

@@ -60,3 +60,14 @@ export async function typeKeys(app: App, text: string) {
     await app.keyboard.press(key);
   }
 }
+
+/** Holds modifier keys (`keyboard.down`); false on a real target, which holds none yet (the caller ends there). */
+export async function holdKeys(app: App, keys: string): Promise<boolean> {
+  try {
+    await app.keyboard.down(keys);
+    return true;
+  } catch (error) {
+    if (String(error).includes("headless only")) return false;
+    throw error;
+  }
+}

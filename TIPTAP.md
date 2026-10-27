@@ -37,17 +37,18 @@ GTK (`nsh test examples/mado --target linux`).
 | A list item moves among its siblings and stays in its list past its end | NSH | editing: "list items have a drag handle…", "…dragging it moves the item alone" |
 | Tables and other unselectable blocks drag too | NSH | GTK and headless drag probes; NSH `drag_block` |
 | A selection over several blocks drags them together | NSH | editing: "the handle carries every block a selection spans" |
-| NodeRange Mod-drag: a mouse selection with Mod held covers whole blocks | NSH | NSH unit test `a_mod_drag_across_blocks_selects_them_whole` (`nsh/test` cannot hold a key during a drag) |
+| NodeRange Mod-drag: a mouse selection with Mod held covers whole blocks | NSH | editing: "a Mod-drag across blocks selects them whole"; NSH unit test |
 | Drag preview beside the pointer | Mado | GTK screenshot; no assertion while dragging (`nsh/test`'s drag is one step) |
 | Auto-scroll at the editor's edges while dragging | NSH | NSH (`follow_drag_edge`) |
 | The handle hides while typing, returns on the next pointer move | Mado | editing: "typing hides the block handle…" |
 | Bubble menu on a non-empty text selection; the handle stays beside it | Mado | editing: "selecting text shows the bubble menu…" |
 | Floating menu on a focused empty line | Mado (NSH: `autoFocus` reports the focus) | editing: "an empty line's floating menu…", "a new document takes the focus…" |
-| Mod-click opens a link while editing; a click when read-only | NSH | NSH unit test in `extensions/link.rs` (`nsh/test` presses carry no modifier) |
+| Mod-click opens a link while editing; a click when read-only | NSH | editing: "Mod-click opens a link while editing"; NSH unit test in `extensions/link.rs` |
 | Table grips: select, move, resize rows and columns | NSH | NSH tests; gallery `rich-editor.test.tsx` |
 
 ## Not covered
 
-- An end-to-end Mod-click or Mod-drag: `nsh/test` presses and drags carry no modifier keys.
+- Mod-click and Mod-drag run headless: `keyboard.down` holds keys there only.
+- The drag preview while a drag runs: `nsh/test`'s drag is one step (checked by a GTK screenshot).
 - `nsh-compat` (`cargo xtask compat`) does not build against NSH's `main` (it still uses `nsh_core::ui` and
   `PatchValue`); the new APIs' case (`tests/compat/cases/base`, step `Page`) passes when run directly.
