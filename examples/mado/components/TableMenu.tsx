@@ -6,18 +6,18 @@ import { IconButton, PANE, Separator } from "./ui";
 
 const GROUPS: { value: TableCommand; label: string; icon: IconName }[][] = [
   [
-    { value: "addRowBefore", label: "Add row above", icon: "between-horizontal-start" },
-    { value: "addRowAfter", label: "Add row below", icon: "between-horizontal-end" },
-    { value: "addColumnBefore", label: "Add column before", icon: "between-vertical-start" },
-    { value: "addColumnAfter", label: "Add column after", icon: "between-vertical-end" },
+    { value: "addRowBefore", label: "Add row above", icon: "row-insert-above" },
+    { value: "addRowAfter", label: "Add row below", icon: "row-insert-below" },
+    { value: "addColumnBefore", label: "Add column before", icon: "column-insert-left" },
+    { value: "addColumnAfter", label: "Add column after", icon: "column-insert-right" },
   ],
   [
     { value: "toggleHeaderRow", label: "Header row", icon: "panel-top" },
     { value: "mergeOrSplit", label: "Merge or split cells", icon: "table-cells-merge" },
   ],
   [
-    { value: "deleteRow", label: "Delete row", icon: "fold-vertical" },
-    { value: "deleteColumn", label: "Delete column", icon: "fold-horizontal" },
+    { value: "deleteRow", label: "Delete row", icon: "row-delete" },
+    { value: "deleteColumn", label: "Delete column", icon: "column-delete" },
     { value: "deleteTable", label: "Delete table", icon: "grid-2x2-x" },
   ],
 ];
