@@ -1,7 +1,7 @@
 // Editing: Markdown shortcuts as you type, the toolbar, the link editor,
 // the slash menu, lists, undo, and the Visual / Source switch.
 import { expect, test } from "nsh/test";
-import { newFile, openMado, saveAndRead, selectBlock, typeInEditor } from "./helpers";
+import { newFile, openMado, saveAndRead, selectBlock, typeInEditor, typeKeys } from "./helpers";
 
 test("# and a space make a heading, - a list, [ ] a task", async () => {
   const app = await openMado();
@@ -41,6 +41,7 @@ test("Mod-k edits the selection's link, and Remove link takes it off", async () 
   const app = await openMado();
   await newFile(app);
   await typeInEditor(app, "Mado");
+  await app.waitFor("1 word");
   await selectBlock(app, "Mado");
   await app.keyboard.press("mod+k");
   await app.waitFor("id:link-panel");
@@ -48,7 +49,10 @@ test("Mod-k edits the selection's link, and Remove link takes it off", async () 
   await app.press("id:link-apply");
   let text = await saveAndRead(app, "Untitled.md", (t) => t.includes("]("));
   expect(text).toContain("[Mado](https://github.com/huacnlee/mado)");
+  // The caret inside the link (a link does not reach past its last character).
   await app.press("Mado");
+  await app.keyboard.press("home");
+  await app.keyboard.press("right");
   await app.keyboard.press("mod+k");
   await app.waitFor("id:link-remove");
   await app.press("id:link-remove");
@@ -94,12 +98,12 @@ test("Tab and Shift-Tab indent and outdent list items", async () => {
 test("Mod-z undoes typing and Shift-Mod-z redoes it", async () => {
   const app = await openMado({ files: { "u.md": "Original\n" }, recent: ["u.md"] });
   await selectBlock(app, "Original");
-  await typeInEditor(app, "Changed");
-  await app.waitFor("Changed");
+  await typeKeys(app, "changed");
+  await app.waitFor("changed");
   await app.keyboard.press("mod+z");
   await app.waitFor("Original");
   await app.keyboard.press("shift+mod+z");
-  await app.waitFor("Changed");
+  await app.waitFor("changed");
 });
 
 test("switching to Source and back keeps the document", async () => {
@@ -118,7 +122,7 @@ test("edits in Source show in Visual", async () => {
   const app = await openMado({ files: { "s.md": "Plain\n" }, recent: ["s.md"], mode: "source" });
   await app.waitFor("id:source-editor");
   await app.press("Plain");
-  await app.keyboard.press("mod+down");
+  await app.keyboard.press("end");
   await app.type("id:source-editor", "\n\n## Added in source");
   await app.press("role:button[Visual]");
   await app.waitFor("Added in source");
@@ -238,4 +242,35 @@ test("==highlights== load as highlights and are saved back", async () => {
   await typeInEditor(app, ".");
   const text = await saveAndRead(app, "hl.md", (t) => t.includes("words."));
   expect(text.trim()).toBe("Some ==marked== words.");
+});
+
+test("the toolbar inserts a table, its menu adds a row, and it saves as GFM", async () => {
+  const app = await openMado();
+  await newFile(app);
+  await app.press("id:toolbar >> label:Table");
+  await app.waitFor("id:table-menu");
+  await typeKeys(app, "Name");
+  await app.press("id:table-menu >> label:Add row below");
+  const text = await saveAndRead(app, "Untitled.md", (t) => t.includes("Name"));
+  expect(text).toMatch(/^\| Name \|/m);
+  expect(text.trim().split("\n").length).toBe(5);
+});
+
+test("tables in a file load and round trip", async () => {
+  const app = await openMado({ files: { "t.md": "| A | B |\n| --- | --- |\n| 1 | 2 |\n" }, recent: ["t.md"] });
+  await app.waitFor("A");
+  await app.press("2");
+  await app.keyboard.press("end");
+  await typeKeys(app, "0");
+  const text = await saveAndRead(app, "t.md", (t) => t.includes("20"));
+  expect(text).toContain("| 1 | 20 |");
+});
+
+test("/table inserts a table from the block menu", async () => {
+  const app = await openMado();
+  await newFile(app);
+  await typeInEditor(app, "/table");
+  await app.waitFor("id:slash-menu >> Table");
+  await app.keyboard.press("enter");
+  await app.waitFor("id:table-menu");
 });

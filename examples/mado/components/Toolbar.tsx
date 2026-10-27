@@ -213,6 +213,7 @@ export function Toolbar(props: { editor: RichEditorSession; revision: number; pa
       </Each>
       <Separator />
       <IconButton icon="minus" label="Divider" disabled={!can(commands.horizontalRule())} onPress={() => run(commands.horizontalRule())} />
+      <IconButton icon="table" label="Table" disabled={!can(commands.insertTable())} onPress={() => run(commands.insertTable())} />
       <Popover
         open={props.panels.imageOpen}
         onOpenChange={(open) => props.panels.setImageOpen(open)}

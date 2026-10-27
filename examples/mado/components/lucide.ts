@@ -11,6 +11,10 @@ export type LucideElement =
   | { tag: "polyline" | "polygon"; points: string };
 
 export const lucide = {
+  "between-horizontal-end": [{"tag": "rect", "x": 3.0, "y": 3.0, "width": 13.0, "height": 7.0, "rx": 1.0}, {"tag": "path", "d": "m22 15-3-3 3-3"}, {"tag": "rect", "x": 3.0, "y": 14.0, "width": 13.0, "height": 7.0, "rx": 1.0}],
+  "between-horizontal-start": [{"tag": "rect", "x": 8.0, "y": 3.0, "width": 13.0, "height": 7.0, "rx": 1.0}, {"tag": "path", "d": "m2 9 3 3-3 3"}, {"tag": "rect", "x": 8.0, "y": 14.0, "width": 13.0, "height": 7.0, "rx": 1.0}],
+  "between-vertical-end": [{"tag": "rect", "x": 3.0, "y": 3.0, "width": 7.0, "height": 13.0, "rx": 1.0}, {"tag": "path", "d": "m9 22 3-3 3 3"}, {"tag": "rect", "x": 14.0, "y": 3.0, "width": 7.0, "height": 13.0, "rx": 1.0}],
+  "between-vertical-start": [{"tag": "rect", "x": 3.0, "y": 8.0, "width": 7.0, "height": 13.0, "rx": 1.0}, {"tag": "path", "d": "m15 2-3 3-3-3"}, {"tag": "rect", "x": 14.0, "y": 8.0, "width": 7.0, "height": 13.0, "rx": 1.0}],
   "bold": [{"tag": "path", "d": "M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"}],
   "check": [{"tag": "path", "d": "M20 6 9 17l-5-5"}],
   "chevron-down": [{"tag": "path", "d": "m6 9 6 6 6-6"}],
@@ -21,7 +25,10 @@ export const lucide = {
   "file-code": [{"tag": "path", "d": "M10 12.5 8 15l2 2.5"}, {"tag": "path", "d": "m14 12.5 2 2.5-2 2.5"}, {"tag": "path", "d": "M14 2v4a2 2 0 0 0 2 2h4"}, {"tag": "path", "d": "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"}],
   "file-plus": [{"tag": "path", "d": "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"}, {"tag": "path", "d": "M14 2v4a2 2 0 0 0 2 2h4"}, {"tag": "path", "d": "M9 15h6"}, {"tag": "path", "d": "M12 18v-6"}],
   "file-text": [{"tag": "path", "d": "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"}, {"tag": "path", "d": "M14 2v4a2 2 0 0 0 2 2h4"}, {"tag": "path", "d": "M10 9H8"}, {"tag": "path", "d": "M16 13H8"}, {"tag": "path", "d": "M16 17H8"}],
+  "fold-horizontal": [{"tag": "path", "d": "M2 12h6"}, {"tag": "path", "d": "M22 12h-6"}, {"tag": "path", "d": "M12 2v2"}, {"tag": "path", "d": "M12 8v2"}, {"tag": "path", "d": "M12 14v2"}, {"tag": "path", "d": "M12 20v2"}, {"tag": "path", "d": "m19 9-3 3 3 3"}, {"tag": "path", "d": "m5 15 3-3-3-3"}],
+  "fold-vertical": [{"tag": "path", "d": "M12 22v-6"}, {"tag": "path", "d": "M12 8V2"}, {"tag": "path", "d": "M4 12H2"}, {"tag": "path", "d": "M10 12H8"}, {"tag": "path", "d": "M16 12h-2"}, {"tag": "path", "d": "M22 12h-2"}, {"tag": "path", "d": "m15 19-3-3-3 3"}, {"tag": "path", "d": "m15 5-3 3-3-3"}],
   "folder-open": [{"tag": "path", "d": "m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"}],
+  "grid-2x2-x": [{"tag": "path", "d": "M12 3v17a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1H3"}, {"tag": "path", "d": "m16 16 5 5"}, {"tag": "path", "d": "m16 21 5-5"}],
   "grip-vertical": [{"tag": "circle", "cx": 9.0, "cy": 12.0, "r": 1.0}, {"tag": "circle", "cx": 9.0, "cy": 5.0, "r": 1.0}, {"tag": "circle", "cx": 9.0, "cy": 19.0, "r": 1.0}, {"tag": "circle", "cx": 15.0, "cy": 12.0, "r": 1.0}, {"tag": "circle", "cx": 15.0, "cy": 5.0, "r": 1.0}, {"tag": "circle", "cx": 15.0, "cy": 19.0, "r": 1.0}],
   "heading": [{"tag": "path", "d": "M6 12h12"}, {"tag": "path", "d": "M6 20V4"}, {"tag": "path", "d": "M18 20V4"}],
   "heading-1": [{"tag": "path", "d": "M4 12h8"}, {"tag": "path", "d": "M4 18V6"}, {"tag": "path", "d": "M12 18V6"}, {"tag": "path", "d": "m17 12 3-2v8"}],
@@ -40,6 +47,7 @@ export const lucide = {
   "minus": [{"tag": "path", "d": "M5 12h14"}],
   "monitor": [{"tag": "rect", "x": 2.0, "y": 3.0, "width": 20.0, "height": 14.0, "rx": 2.0}, {"tag": "line", "x1": 8.0, "y1": 21.0, "x2": 16.0, "y2": 21.0}, {"tag": "line", "x1": 12.0, "y1": 17.0, "x2": 12.0, "y2": 21.0}],
   "moon": [{"tag": "path", "d": "M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"}],
+  "panel-top": [{"tag": "rect", "x": 3.0, "y": 3.0, "width": 18.0, "height": 18.0, "rx": 2.0}, {"tag": "path", "d": "M3 9h18"}],
   "pencil": [{"tag": "path", "d": "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"}, {"tag": "path", "d": "m15 5 4 4"}],
   "pilcrow": [{"tag": "path", "d": "M13 4v16"}, {"tag": "path", "d": "M17 4v16"}, {"tag": "path", "d": "M19 4H9.5a4.5 4.5 0 0 0 0 9H13"}],
   "plus": [{"tag": "path", "d": "M5 12h14"}, {"tag": "path", "d": "M12 5v14"}],
@@ -51,6 +59,8 @@ export const lucide = {
   "sun": [{"tag": "circle", "cx": 12.0, "cy": 12.0, "r": 4.0}, {"tag": "path", "d": "M12 2v2"}, {"tag": "path", "d": "M12 20v2"}, {"tag": "path", "d": "m4.93 4.93 1.41 1.41"}, {"tag": "path", "d": "m17.66 17.66 1.41 1.41"}, {"tag": "path", "d": "M2 12h2"}, {"tag": "path", "d": "M20 12h2"}, {"tag": "path", "d": "m6.34 17.66-1.41 1.41"}, {"tag": "path", "d": "m19.07 4.93-1.41 1.41"}],
   "superscript": [{"tag": "path", "d": "m4 19 8-8"}, {"tag": "path", "d": "m12 19-8-8"}, {"tag": "path", "d": "M20 12h-4c0-1.5.442-2 1.5-2.5S20 8.334 20 7.002c0-.472-.17-.93-.484-1.29a2.105 2.105 0 0 0-2.617-.436c-.42.239-.738.614-.899 1.06"}],
   "table": [{"tag": "path", "d": "M12 3v18"}, {"tag": "rect", "x": 3.0, "y": 3.0, "width": 18.0, "height": 18.0, "rx": 2.0}, {"tag": "path", "d": "M3 9h18"}, {"tag": "path", "d": "M3 15h18"}],
+  "table-cells-merge": [{"tag": "path", "d": "M12 21v-6"}, {"tag": "path", "d": "M12 9V3"}, {"tag": "path", "d": "M3 15h18"}, {"tag": "path", "d": "M3 9h18"}, {"tag": "rect", "x": 3.0, "y": 3.0, "width": 18.0, "height": 18.0, "rx": 2.0}],
+  "table-cells-split": [{"tag": "path", "d": "M12 15V9"}, {"tag": "path", "d": "M3 15h18"}, {"tag": "path", "d": "M3 9h18"}, {"tag": "rect", "x": 3.0, "y": 3.0, "width": 18.0, "height": 18.0, "rx": 2.0}],
   "text-align-center": [{"tag": "path", "d": "M21 5H3"}, {"tag": "path", "d": "M17 12H7"}, {"tag": "path", "d": "M19 19H5"}],
   "text-align-end": [{"tag": "path", "d": "M21 5H3"}, {"tag": "path", "d": "M21 12H9"}, {"tag": "path", "d": "M21 19H7"}],
   "text-align-justify": [{"tag": "path", "d": "M3 5h18"}, {"tag": "path", "d": "M3 12h18"}, {"tag": "path", "d": "M3 19h18"}],

@@ -139,6 +139,15 @@ pub fn items() -> Vec<SlashItem> {
             Value::Null,
         ),
         item(
+            "table",
+            "Table",
+            "A 3×3 table with a header row",
+            "table",
+            "grid rows columns cells",
+            Some("insertTable"),
+            json!({ "rows": 3, "cols": 3, "withHeaderRow": true }),
+        ),
+        item(
             "image",
             "Image",
             "Insert an image by path or URL",

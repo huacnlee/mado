@@ -19,8 +19,8 @@ pub mod slash;
 pub mod text;
 
 use nsh_base::rich_editor::{
-    extensions::{RichExtensionRegistry, starter},
-    model::Node,
+    extensions::{ExtensionManager, RichExtensionRegistry},
+    model::{Node, Schema},
 };
 use nsh_core::{JsonValue, prelude::*};
 
@@ -33,8 +33,22 @@ pub use crate::{
 #[module]
 pub struct RichText;
 
+/// The schema of [`kit::rich_text_kit`] with its defaults (the starter
+/// kit's nodes and marks, and tables).
+pub fn schema() -> Schema {
+    static SCHEMA: std::sync::OnceLock<Schema> = std::sync::OnceLock::new();
+    SCHEMA
+        .get_or_init(|| {
+            ExtensionManager::new(vec![kit::rich_text_kit()])
+                .expect("the kit's extensions resolve")
+                .schema()
+                .clone()
+        })
+        .clone()
+}
+
 fn doc_of(doc: &JsonValue) -> Option<Node> {
-    Node::from_json(&starter::schema(), doc).ok()
+    Node::from_json(&schema(), doc).ok()
 }
 
 #[module]
@@ -54,12 +68,12 @@ impl RichText {
     /// Reads Markdown as a document (JSON, for `createRichEditor`'s
     /// `content` or `setContent`), `==text==` highlighted.
     pub fn from_markdown(markdown: String) -> Result<JsonValue, String> {
-        Ok(markdown::parse(&starter::schema(), &markdown)?.to_json())
+        Ok(markdown::parse(&schema(), &markdown)?.to_json())
     }
 
     /// Writes a document (`editor.doc`) as Markdown, highlights as `==text==`.
     pub fn to_markdown(doc: JsonValue) -> Result<String, String> {
-        let doc = Node::from_json(&starter::schema(), &doc).map_err(|e| e.to_string())?;
+        let doc = Node::from_json(&schema(), &doc).map_err(|e| e.to_string())?;
         markdown::serialize(&doc)
     }
 
@@ -89,4 +103,19 @@ fn native(registry: &mut Registry) {
         .rich_extension("blockMove", kit::blocks)
         .rich_extension("editing", kit::editing)
         .rich_extension("markdown", kit::markdown);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tables_read_and_write_as_gfm() {
+        let md = "| A | B |\n| --- | --- |\n| 1 | 2 |\n";
+        let doc = RichText::from_markdown(md.into()).unwrap();
+        assert_eq!(doc["content"][0]["type"], "table");
+        let out = RichText::to_markdown(doc).unwrap();
+        assert!(out.contains("| A | B |"), "{out}");
+        assert!(out.contains("| 1 | 2 |"), "{out}");
+    }
 }

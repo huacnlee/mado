@@ -7,8 +7,10 @@ use nsh_base::rich_editor::{
     commands::{BoxCommand, CommandRegistry, chain_commands},
     extensions::{
         Extension,
-        kit::starter_kit,
+        kit::{starter_kit, table_kit},
+        link::{LinkOptions, link as link_plugins},
         markdown::{MarkdownOptions, markdown as markdown_plugins},
+        suggestion::{SuggestionOptions, SuggestionTrigger, suggestion},
     },
     model::Schema,
 };
@@ -18,6 +20,9 @@ use crate::blocks::{move_block_by, move_block_to};
 
 /// The node types a block style sets, by the names the commands take.
 pub const BLOCK_STYLES: [&str; 8] = ["paragraph", "h1", "h2", "h3", "h4", "h5", "h6", "codeBlock"];
+
+/// The key of the slash menu's suggestion: `editor.suggestion("slash")`.
+pub const SLASH_KEY: &str = "slash";
 
 /// A built-in command made from JSON arguments.
 fn builtin(name: &str, args: Value, schema: &Schema) -> Result<BoxCommand, String> {
@@ -203,9 +208,39 @@ pub fn markdown() -> Extension {
     Extension::new("markdown").add_plugins(|_| markdown_plugins(MarkdownOptions::default()))
 }
 
+/// `autolink` (Tiptap's Link behavior): URLs typed or pasted become links,
+/// and a URL pasted over a selection links it.
+pub fn autolink() -> Extension {
+    Extension::new("autolink").add_plugins(|_| link_plugins(LinkOptions::default()))
+}
+
+/// `slashMenu`: a suggestion keyed [`SLASH_KEY`] triggered by `/` at the
+/// start of a line (Tiptap's slash commands); the arrows, Enter and Tab are
+/// captured while it is active, Escape dismisses it. The app reads it with
+/// `editor.suggestion("slash")` and runs the chosen item's command over its
+/// range. Its priority puts it before the keymap, so Enter and the arrows
+/// reach the menu rather than the document while it is open.
+pub fn slash_menu() -> Extension {
+    Extension::new("slashMenu")
+        .with_priority(200)
+        .add_plugins(|_| {
+            let mut trigger = SuggestionTrigger::default();
+            trigger.char = "/".into();
+            trigger.start_of_line = true;
+            let mut options = SuggestionOptions::default();
+            options.key = SLASH_KEY.into();
+            options.trigger = trigger;
+            options.capture_keys = ["ArrowUp", "ArrowDown", "Enter", "Tab"]
+                .map(String::from)
+                .to_vec();
+            vec![suggestion(options)]
+        })
+}
+
 /// Everything a complete editor needs: NSH's starter kit (configured with
-/// the option `starterKit`), [`markdown`], [`editing`] and [`blocks`]; each
-/// left out with `false` under its name (`{ blockMove: false }`).
+/// the option `starterKit`), [`markdown`], [`editing`], [`blocks`], NSH's
+/// table kit (`tableKit`), [`autolink`] and [`slash_menu`] (`slashMenu`);
+/// each left out with `false` under its name (`{ blockMove: false }`).
 pub fn rich_text_kit() -> Extension {
     Extension::new("richTextKit").add_extensions(|options| {
         let on = |name: &str| options.get(name) != Some(&Value::Bool(false));
@@ -225,6 +260,19 @@ pub fn rich_text_kit() -> Extension {
         }
         if on("blockMove") {
             kit.push(blocks());
+        }
+        if on("tableKit") {
+            let tables = table_kit();
+            kit.push(match options.get("tableKit") {
+                Some(config @ Value::Object(_)) => tables.configure(config.clone()),
+                _ => tables,
+            });
+        }
+        if on("autolink") {
+            kit.push(autolink());
+        }
+        if on("slashMenu") {
+            kit.push(slash_menu());
         }
         kit
     })
@@ -263,6 +311,23 @@ mod tests {
             return Err(format!("{name} did not apply"));
         }
         out.ok_or_else(|| "no transaction".into())
+    }
+
+    #[test]
+    fn insert_table_comes_with_the_kit() {
+        let doc = run(
+            "insertTable",
+            json!({ "rows": 2, "cols": 2, "withHeaderRow": true }),
+            "",
+        )
+        .unwrap();
+        let types: Vec<_> = doc["content"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["type"].as_str().unwrap().to_owned())
+            .collect();
+        assert!(types.contains(&"table".to_owned()), "{types:?}");
     }
 
     #[test]

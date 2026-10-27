@@ -22,11 +22,14 @@ import {
   selectionRect,
   slashMatches,
   NODE,
+  SLASH_KEY,
+  inTable,
 } from "../editor/setup";
 import { insertText } from "nsh/base";
 import { BubbleMenu } from "./BubbleMenu";
 import { Icon } from "./Icon";
 import { SlashMenu } from "./SlashMenu";
+import { TableMenu } from "./TableMenu";
 
 export interface VisualEditorActions {
   save: () => void;
@@ -43,12 +46,14 @@ const ITEM_GUTTER = 30;
 type Box = { x: number; y: number; width: number; height: number };
 
 export function VisualEditor(props: { mado: MadoEditor; revision: number; actions: VisualEditorActions }) {
-  const { editor, slash, handlers } = props.mado;
+  const { editor, handlers } = props.mado;
   let host: YNode | null = null;
   const origin = signal({ x: 0, y: 0 });
   const slashQuery = signal<{ text: string; from: number; to: number } | null>(null);
   const highlighted = signal(0);
   const bubble = signal<Box | null>(null);
+  /** The caret is in a table: the bubble menu shows its rows and columns. */
+  const table = signal(false);
   const handle = signal<{ box: Box; empty: boolean; pos: number; item: boolean } | null>(null);
   /** The block the pointer is over, which the handle follows before the caret's. */
   const hovered = signal<number | null>(null);
@@ -69,9 +74,14 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     else if (key === "Mod-/") props.actions.toggleMode();
   };
 
+  /** The suggestion the menu was dismissed for (Escape is native; a press outside closes it here). */
+  let dismissed: string | null = null;
+  /** The captured keys already acted on. */
+  let keysSeen = 0;
+
   const closeSlash = () => {
+    dismissed = editor.suggestion(SLASH_KEY)?.decorationId ?? null;
     slashQuery.set(null);
-    slash.capturing = false;
   };
 
   const pick = (item: SlashItem) => {
@@ -83,12 +93,31 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     editor.focus();
   };
 
-  handlers.slash = (key) => {
+  /** A key the kit's slash suggestion captured while active. */
+  const slashKey = (key: string) => {
     const count = matches().length;
     if (key === "ArrowDown") highlighted.set((highlighted() + 1) % Math.max(count, 1));
     else if (key === "ArrowUp") highlighted.set((highlighted() + count - 1) % Math.max(count, 1));
     else if ((key === "Enter" || key === "Tab") && count > 0) pick(matches()[highlighted()]);
-    else closeSlash();
+  };
+
+  /** Follows the kit's `/` suggestion (nsh-richtext's `slashMenu`): its range, its query and the keys it took. */
+  const followSlash = () => {
+    const state = editor.suggestion(SLASH_KEY);
+    if (!state?.active || state.decorationId === dismissed) {
+      if (!state?.active) dismissed = null;
+      keysSeen = state?.keyCount ?? 0;
+      slashQuery.set(null);
+      return;
+    }
+    const opening = slashQuery() === null;
+    slashQuery.set({ text: state.query ?? "", from: state.range.from, to: state.range.to });
+    if (opening) highlighted.set(0);
+    else highlighted.set(Math.min(highlighted(), Math.max(matches().length - 1, 0)));
+    if (state.keyCount > keysSeen && state.lastKey) {
+      keysSeen = state.keyCount;
+      slashKey(state.lastKey);
+    }
   };
 
   const measure = async () => {
@@ -106,21 +135,11 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     const empty = selection.type !== "text" || selection.anchor === selection.head;
     const block = currentBlock(editor);
 
-    // `/` typed at the start of a textblock, and what follows it up to the caret.
-    const before = block && empty && block.type !== NODE.codeBlock ? block.text.slice(0, head - block.from) : "";
-    const found = /^\/([\p{L}\p{N} ]{0,24})$/u.exec(before);
-    if (found && block) {
-      const opening = slashQuery() === null;
-      slashQuery.set({ text: found[1], from: block.from, to: head });
-      if (opening) highlighted.set(0);
-      else highlighted.set(Math.min(highlighted(), Math.max(matches().length - 1, 0)));
-      slash.capturing = true;
-    } else {
-      closeSlash();
-    }
+    followSlash();
 
     void measure();
     bubble.set(!empty && selection.type === "text" ? selectionRect(editor) : null);
+    table.set(inTable(editor));
     placeHandle(hovered() ?? head, block);
   };
 
@@ -162,8 +181,6 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     editor.unsubscribe(subscription);
     for (const off of offs) off();
     handlers.shortcut = null;
-    handlers.slash = null;
-    slash.capturing = false;
   });
 
   const at = (box: Box) => ({ origin: { x: origin().x + box.x, y: origin().y + box.y }, size: { width: Math.max(box.width, 1), height: box.height } });
@@ -229,6 +246,13 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
         autoFocus
         onFocus={() => focused.set(true)}
         onBlur={() => focused.set(false)}
+        bubbleMenu={
+          <If when={slashQuery() === null && (bubble() !== null || table())}>
+            <If when={bubble() !== null} else={<TableMenu editor={editor} />}>
+              <BubbleMenu editor={editor} revision={props.revision} onLink={props.actions.openLink} />
+            </If>
+          </If>
+        }
       />
       <If when={dropLine() !== null}>
         <View
@@ -254,12 +278,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
           <SlashMenu items={matches()} highlighted={highlighted()} onPick={pick} onHover={(v) => highlighted.set(v)} />
         </Overlay>
       </If>
-      <If when={bubble() !== null && slashQuery() === null}>
-        <Overlay anchor={at(bubble() as Box)} placement="top" offset={8}>
-          <BubbleMenu editor={editor} revision={props.revision} onLink={props.actions.openLink} />
-        </Overlay>
-      </If>
-      <If when={(focused() || hovered() !== null || dragging() !== null) && handle() !== null && bubble() === null && slashQuery() === null}>
+      <If when={(focused() || hovered() !== null || dragging() !== null) && handle() !== null && bubble() === null && !table() && slashQuery() === null}>
         {/* Anchored on the block's first line, centered on it, whatever the block's height. */}
         <Overlay anchor={at((handle() as { box: Box }).box)} placement="left" align="center" offset={handle()?.item ? ITEM_GUTTER : 6}>
           <View class="flex-row items-center gap-0.5">

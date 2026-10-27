@@ -39,6 +39,9 @@ RichText.slashItems("head");          // the slash menu's blocks matching "head"
 | `richTextKit` | All of the below with NSH's starter kit (`starterKit` configures it); any part off with `{ name: false }` |
 | `markdown` | Markdown shortcuts as you type, Markdown paste, copy as Markdown |
 | `editing` | `setBlockStyle({ style })`, `toggleListType({ list })`, `toggleQuote`, `indentItem`, `outdentItem`, `setAlign({ align })`, `insertDivider`, `insertImage({ src, alt })`, `replaceWith({ from, to, command, args })` |
+| `tableKit` | NSH's table kit: tables with header rows, cell selection, resizing, row and column grips; `insertTable({ rows, cols, withHeaderRow })`, `addRowBefore` / `addRowAfter`, `addColumnBefore` / `addColumnAfter`, `deleteRow`, `deleteColumn`, `deleteTable`, `mergeOrSplit`, `toggleHeaderRow`, ...; GFM tables in Markdown |
+| `autolink` | URLs typed or pasted become links; a URL pasted over a selection links it |
+| `slashMenu` | A suggestion keyed `slash`: `/` at the start of a line; `editor.suggestion("slash")` gives its range, query and the arrows / Enter / Tab it took (Escape dismisses it) |
 | `blockMove` | `moveBlockUp` / `moveBlockDown` (Alt-↑ / Alt-↓), `moveBlockTo({ source, target })`: a list or task item moves among its siblings, other blocks at the top level |
 
 `RichText` (the crate's module): `fromMarkdown(text)` / `toMarkdown(doc)` (Markdown with `==highlight==`, which NSH's own format drops), `blockAt(doc, pos)` and `dropTarget(doc, source, target)` for block handles and
@@ -57,9 +60,12 @@ shape as you type, and the file stays plain Markdown that every other tool reads
   fenced code, `---` rules, `**bold**`, `_italic_`, `` `code` ``, `~~strike~~`, `==highlight==`), Markdown and HTML
   paste, undo and redo, Tab / Shift-Tab in lists.
 - **A toolbar** with the block style menu, bulleted, numbered and task lists, quote, code block, bold, italic,
-  strikethrough, inline code, underline, link, highlight, superscript, subscript, text alignment, divider, image,
+  strikethrough, inline code, underline, link, highlight, superscript, subscript, text alignment, divider, table, image,
   indent and outdent, each showing its state and shortcut.
-- **A bubble menu** over selected text for its marks and its link, and a **link editor** (⌘K) to add, update, open
+- **Tables**: from the toolbar or `/table`, saved as GFM tables; a menu over the table adds and deletes rows and
+  columns, toggles the header row, merges and splits cells; cells select by dragging, columns resize at their border.
+- **Links** as you type or paste a URL.
+- **A bubble menu** (RichEditor's `bubbleMenu`) over selected text for its marks and its link, and a **link editor** (⌘K) to add, update, open
   or remove a link.
 - **A slash menu**: `/` at the start of a line lists the blocks to insert; type to filter, arrows and Enter to pick.
   An empty line shows a `+` that opens it.

@@ -39,6 +39,10 @@ export const NODE = {
   horizontalRule: "horizontalRule",
   hardBreak: "hardBreak",
   image: "image",
+  table: "table",
+  tableRow: "tableRow",
+  tableHeader: "tableHeader",
+  tableCell: "tableCell",
 } as const;
 
 /** The mark types Mado uses. */
@@ -57,6 +61,16 @@ export const MARK = {
 export type MarkKey = keyof typeof MARK;
 export type BlockKey = "paragraph" | "h1" | "h2" | "h3" | "h4" | "codeBlock";
 export type ListKey = "bulletList" | "orderedList" | "taskList";
+export type TableCommand =
+  | "addRowBefore"
+  | "addRowAfter"
+  | "addColumnBefore"
+  | "addColumnAfter"
+  | "deleteRow"
+  | "deleteColumn"
+  | "deleteTable"
+  | "mergeOrSplit"
+  | "toggleHeaderRow";
 export type Align = "left" | "center" | "right" | "justify";
 
 // --- Session queries ---------------------------------------------------------------
@@ -167,6 +181,14 @@ export const commands = {
   fromSlash(from: number, to: number, item: SlashItem): RichCommand {
     return named("replaceWith", { from, to, command: item.command, args: item.args });
   },
+  /** Inserts a table of `rows` × `cols` with a header row. */
+  insertTable(rows = 3, cols = 3): RichCommand {
+    return named("insertTable", { rows, cols, withHeaderRow: true });
+  },
+  /** One of the table kit's commands that takes no arguments (`addRowAfter`, `deleteColumn`, `mergeOrSplit`, ...). */
+  table(name: TableCommand): RichCommand {
+    return named(name, null);
+  },
   /** Moves the block a handle at `source` moves to where dropping it at `target` puts it. */
   moveBlock(source: number, target: number): RichCommand {
     return named("moveBlockTo", { source, target });
@@ -215,6 +237,11 @@ export function activeBlock(editor: RichEditorSession): BlockKey | null {
   return editor.isActive(NODE.paragraph) ? "paragraph" : null;
 }
 
+/** Whether the selection is in a table. */
+export function inTable(editor: RichEditorSession): boolean {
+  return editor.isActive(NODE.table);
+}
+
 /** The lists around the selection, innermost last. */
 export function activeLists(editor: RichEditorSession): ListKey[] {
   return (["bulletList", "orderedList", "taskList"] as const).filter((list) => editor.isActive(NODE[list]));
@@ -244,10 +271,8 @@ export interface MadoEditor {
   editor: RichEditorSession;
   /** Takes app shortcuts while the editor has focus. */
   shortcuts: RichEditorPlugin;
-  /** Takes the arrows, Enter and Escape while the slash menu is open. */
-  slash: RichEditorPlugin;
   /** Who hears the captured keys now: the view showing the editor sets them while it is shown. */
-  handlers: { shortcut: ((key: string) => void) | null; slash: ((key: string) => void) | null };
+  handlers: { shortcut: ((key: string) => void) | null };
 }
 
 /** The editor's document as Markdown: nsh-richtext's, which keeps `==highlights==`. */
@@ -258,23 +283,21 @@ export function markdownOf(editor: RichEditorSession): string {
 /** Makes an editor holding `markdown`. */
 export function createMadoEditor(markdownText: string): MadoEditor {
   const shortcuts = new RichEditorPlugin("mado-shortcuts");
-  const slash = new RichEditorPlugin("mado-slash");
   const editor = createRichEditor({
     content: RichText.fromMarkdown(markdownText) as RichNodeJSON,
-    // The app's key captures bind before the kit's keymap (Enter, the arrows), as a higher priority runs first.
-    extensions: [defineExtension({ name: "madoKeys", priority: 1000, addProseMirrorPlugins: () => [slash, shortcuts] }), richExtension("richTextKit")],
+    // The app's shortcuts bind before the kit's keymap, as a higher priority runs first.
+    extensions: [defineExtension({ name: "madoKeys", priority: 1000, addProseMirrorPlugins: () => [shortcuts] }), richExtension("richTextKit")],
   });
-  const handlers: MadoEditor["handlers"] = { shortcut: null, slash: null };
+  const handlers: MadoEditor["handlers"] = { shortcut: null };
   shortcuts.captureKeys(SHORTCUT_KEYS, (key) => handlers.shortcut?.(key));
   shortcuts.capturing = true;
-  slash.captureKeys(SLASH_KEYS, (key) => handlers.slash?.(key));
-  return { editor, shortcuts, slash, handlers };
+  return { editor, shortcuts, handlers };
 }
 
 /** The editor's keys Mado handles itself, as `RichEditorPlugin.captureKeys` names them. */
 export const SHORTCUT_KEYS = ["Mod-s", "Mod-k", "Mod-n", "Mod-o", "Mod-/"];
-/** The keys the slash menu takes while open. */
-export const SLASH_KEYS = ["ArrowUp", "ArrowDown", "Enter", "Escape", "Tab"];
+/** The key of the kit's `/` suggestion (nsh-richtext's `slashMenu`), for `editor.suggestion`. */
+export const SLASH_KEY = "slash";
 
 // --- The document's look -------------------------------------------------------------
 
@@ -307,6 +330,10 @@ const nodes: Record<string, string> = {
   [NODE.listItem]: "gap-1",
   [NODE.horizontalRule]: "h-px bg-border my-4",
   [NODE.image]: "rounded-lg max-w-full",
+  [NODE.table]: "border border-border rounded-md",
+  [NODE.tableRow]: "border-b border-border",
+  [NODE.tableHeader]: "bg-muted font-semibold px-3 py-2 border-r border-border",
+  [NODE.tableCell]: "px-3 py-2 border-r border-border",
 };
 for (const align of ["center", "right", "justify"] as const) {
   nodes[`${NODE.paragraph}[textAlign=${align}]`] = `${nodes[NODE.paragraph]} text-${align}`;
@@ -314,12 +341,17 @@ for (const align of ["center", "right", "justify"] as const) {
 
 /** The classes of the editor's parts and the document's nodes and marks. */
 export const editorClasses: RichEditorClasses = {
-  content: "gap-4 px-1 pb-24",
+  // `pl-12`: the gutter the block handle sits in, so it never covers the text in a narrow window.
+  content: "gap-4 pl-12 pr-1 pb-24",
   placeholder: "text-muted-foreground",
   listMarker: "text-muted-foreground",
   selectedNode: "outline outline-2 outline-ring rounded",
   taskCheckbox: "mt-1.5 size-4 rounded border border-input",
   dropCursor: "bg-ring",
+  selectedCell: "bg-accent",
+  tableGrip: "bg-muted-foreground/40 rounded-full hover:bg-ring",
+  tableResizeHandle: "bg-ring",
+  tableDropIndicator: "bg-ring",
   nodes,
   marks,
 };

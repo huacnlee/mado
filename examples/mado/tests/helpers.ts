@@ -22,11 +22,12 @@ export async function openMado(options: { files?: Record<string, string>; recent
   return open("../App.tsx", { storage, platform: options.platform ?? "macos", width: 1200, height: 800 });
 }
 
-/** Selects a textblock as a user does: three presses on it. */
+/** Selects a one-line textblock: a press on it, then Home and Shift-End. (Three presses would be a triple click, but a
+ * native driver settles between presses, slower than the platform's multi-click interval.) */
 export async function selectBlock(app: App, selector: string) {
   await app.press(selector);
-  await app.press(selector);
-  await app.press(selector);
+  await app.keyboard.press("home");
+  await app.keyboard.press("shift+end");
 }
 
 /** Types into the rich editor key by key. */
@@ -38,6 +39,8 @@ export async function typeInEditor(app: App, text: string) {
 export async function newFile(app: App) {
   await app.keyboard.press("mod+n");
   await app.waitFor("Untitled.md");
+  // The new file's editor, empty: typing before it mounts would go to the one it replaces.
+  await app.waitFor("text:/Write something/");
 }
 
 /** Saves (Mod-s) and waits for the file to hold what `check` wants. */
@@ -45,4 +48,12 @@ export async function saveAndRead(app: App, name: string, check: (text: string) 
   await app.keyboard.press("mod+s");
   await app.waitUntil(() => check(app.storage()[fileKey(name)] ?? ""));
   return app.storage()[fileKey(name)] ?? "";
+}
+
+/** Types `text` at the caret by key presses, keeping the selection (`type` presses the editor to focus it first). */
+export async function typeKeys(app: App, text: string) {
+  for (const c of text) {
+    const key = c === " " ? "space" : c !== c.toLowerCase() ? `shift+${c.toLowerCase()}` : c;
+    await app.keyboard.press(key);
+  }
 }
