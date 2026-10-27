@@ -57,7 +57,19 @@ pub fn serialize(doc: &Node) -> Result<String, String> {
     delimit_highlights(&mut json);
     let plain = Node::from_json(doc.ty().schema(), &json).map_err(|e| e.to_string())?;
     let markdown = format().serialize(&plain).map_err(|e| e.to_string())?;
-    Ok(unescape_line_starts(&markdown))
+    Ok(one_final_newline(unescape_line_starts(&markdown)))
+}
+
+/// The empty paragraph an editor keeps after a last block that is not one
+/// (a list, a heading, a table: where the caret can go on typing) writes
+/// blank lines; a file ends with one newline.
+fn one_final_newline(markdown: String) -> String {
+    let body = markdown.trim_end_matches('\n');
+    if body.is_empty() {
+        String::new()
+    } else {
+        format!("{body}\n")
+    }
 }
 
 /// The writer escapes `=` starting a line (a setext heading's underline);
@@ -216,6 +228,18 @@ mod tests {
             markdown.trim(),
             "Links and ==highlights== stand out, `a==b==c` stays."
         );
+    }
+
+    #[test]
+    fn a_trailing_empty_paragraph_writes_no_blank_lines() {
+        let schema = starter::schema();
+        let mut json = parse(&schema, "## Head\n").unwrap().to_json();
+        json["content"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({ "type": "paragraph" }));
+        let doc = Node::from_json(&schema, &json).unwrap();
+        assert_eq!(serialize(&doc).unwrap(), "## Head\n");
     }
 
     #[test]
