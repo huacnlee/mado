@@ -58,6 +58,8 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   /** The block the pointer is over, which the handle follows before the caret's. */
   const hovered = signal<number | null>(null);
   const focused = signal(false);
+  /** Typed since the pointer last moved: the handle steps aside, as Tiptap's does on a key. */
+  const typing = signal(false);
   const dragging = signal<number | null>(null);
   let hostWidth = 0;
   const matches = () => {
@@ -172,6 +174,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   /** The pointer moved over the editor: the handle follows the block under it. */
   const hover = (pageX: number, pageY: number) => {
     if (dragging() !== null) return;
+    typing.set(false);
     // The block at the pointer's height, read inside the text column: moving left onto the handle keeps its block.
     const pos = blockPosAt(pageX, pageY);
     // The editor learns where it is on the page from the pointer's first move over it, which may reach it after
@@ -195,6 +198,9 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
       follow();
     }),
     onEditorEvent(editor, "focus", () => focused.set(true)),
+    onEditorEvent(editor, "update", () => {
+      if (dragging() === null) typing.set(true);
+    }),
     onEditorEvent(editor, "blur", () => focused.set(false)),
   ];
   cleanup(() => {
@@ -266,7 +272,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
         </Overlay>
       </If>
       {/* While a drag runs the handle stays: it holds the press (a dragged table selects, which would hide it). */}
-      <If when={handle() !== null && (dragging() !== null || ((focused() || hovered() !== null) && bubble() === null && !table() && slashQuery() === null))}>
+      <If when={handle() !== null && (dragging() !== null || ((focused() || hovered() !== null) && !typing() && bubble() === null && !table() && slashQuery() === null))}>
         {/* Anchored on the block's first line, centered on it, whatever the block's height. */}
         <Overlay anchor={at((handle() as { box: Box }).box)} placement="left" align="center" offset={handle()?.item ? ITEM_GUTTER : 6}>
           <View class="flex-row items-center gap-0.5">

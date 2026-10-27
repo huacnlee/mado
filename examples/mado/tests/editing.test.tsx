@@ -305,3 +305,23 @@ test("task lists keep their checks through a save", async () => {
   const text = await saveAndRead(app, "t.md", (t) => t.includes("todos"));
   expect(text).toContain("- [x] done\n- [ ] todos");
 });
+
+test("typing hides the block handle until the pointer moves again", async () => {
+  const app = await openMado({ files: { "type.md": "First\n\nSecond\n" }, recent: ["type.md"] });
+  await app.press("Second");
+  await app.hover("First");
+  await app.waitFor("id:block-grip");
+  await app.keyboard.press("end");
+  await typeInEditor(app, "!");
+  await app.waitUntil(() => !app.shows("id:block-grip"));
+  await app.hover("First");
+  await app.waitFor("id:block-grip");
+});
+
+test("a block command saves no trailing blank lines", async () => {
+  const app = await openMado({ files: { "end.md": "Para\n" }, recent: ["end.md"] });
+  await app.press("Para");
+  await app.keyboard.press("mod+alt+2");
+  const text = await saveAndRead(app, "end.md", (t) => t.startsWith("## "));
+  expect(text).toBe("## Para\n");
+});
