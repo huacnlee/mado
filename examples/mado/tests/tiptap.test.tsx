@@ -30,6 +30,9 @@ const CASES: Case[] = [
   { name: "Down past a closing table reaches the line after it", doc: TABLE, at: "2", keys: ["down"], type: "after", saved: `${TABLE}\nafter\n` },
   { name: "A URL pasted on a selection links it", doc: "word\n", at: "word", keys: ["home", "shift+end"], paste: "https://example.com", saved: "[word](https://example.com)\n" },
   { name: "Typography turns -- (c) ... -> into their characters", doc: "x\n", at: "x", keys: ["end"], type: " -- (c) ... ->", saved: "x — © … →\n" },
+  { name: "Mod-Alt-c makes a code block", doc: "Para\n", at: "Para", keys: ["mod+alt+c"], saved: "```\nPara\n```\n" },
+  { name: "Shift-Enter breaks the line inside a paragraph", doc: "ab\n", at: "ab", keys: ["end", "shift+enter"], type: "c", saved: "ab\\\nc\n" },
+  { name: "Mod-y redoes what Mod-z undid", doc: "Para\n", at: "Para", keys: ["mod+alt+2", "mod+z", "mod+y"], saved: "## Para\n" },
 ];
 
 for (const c of CASES) {

@@ -15,7 +15,8 @@ GTK (`nsh test examples/mado --target linux`).
 | Mod-Alt-0…6 headings | NSH | tiptap: "Mod-Alt-2…", "Mod-Alt-0…" |
 | Mod-Shift-7 / 8 / 9 lists, Mod-Shift-b quote | NSH | tiptap: four cases |
 | Mod-k link; a URL pasted on a selection links it | NSH, Mado | editing: "Mod-k…"; tiptap: "A URL pasted…" |
-| Mod-z / Shift-Mod-z | NSH | editing: "Mod-z undoes typing…" |
+| Mod-z / Shift-Mod-z / Mod-y | NSH | editing: "Mod-z undoes typing…"; tiptap: "Mod-y redoes…" |
+| Mod-Alt-c code block; Shift-Enter hard break | NSH | tiptap: "Mod-Alt-c…", "Shift-Enter…" |
 | Code block: Enter three times, Down at the end, Mod-Enter leave it | NSH | tiptap: three cases |
 | Lists: Enter on an empty item leaves, Backspace at the start lifts, Tab / Shift-Tab nest | NSH | tiptap: two cases; editing: "Tab and Shift-Tab…" |
 | Quote: Backspace at the start lifts | NSH | tiptap: "Backspace at a quote's start…" |
@@ -47,6 +48,8 @@ GTK (`nsh test examples/mado --target linux`).
 | Table grips: select, move, resize rows and columns | NSH | NSH tests; gallery `rich-editor.test.tsx` |
 
 ## Not covered
+
+- Text alignment (Tiptap's Mod-Shift-l / e / r / j): Markdown has no alignment to save, so Mado leaves it out.
 
 - Mod-click and Mod-drag run headless and on Linux: `keyboard.down` holds keys there; the other real targets refuse it.
 - `app.dragAndHold` and `keyboard.down` run headless and on Linux; the other real targets refuse them for now.
