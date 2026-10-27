@@ -83,9 +83,9 @@ export interface Rect {
   height: number;
 }
 
-/** Where the caret at `pos` is drawn, in the editor view. */
+/** Where the caret at `pos` is drawn, in page coordinates (ProseMirror's `coordsAtPos`; the editor's scrolling included). */
 export function coordsAtPos(editor: RichEditorSession, pos: number): Rect | null {
-  return editor.coordsAtPos(pos) as Rect | null;
+  return editor.pageCoordsAtPos(pos) as Rect | null;
 }
 
 /** The box around the selection in the editor view, or `null`. */
@@ -93,9 +93,9 @@ export function selectionRect(editor: RichEditorSession): Rect | null {
   return editor.selectionRect() as Rect | null;
 }
 
-/** The document position at a point of the editor view, or `null`. */
+/** The document position at a page point, or `null` (ProseMirror's `posAtCoords`). */
 export function posAtCoords(editor: RichEditorSession, x: number, y: number): number | null {
-  return editor.posAtCoords({ x, y });
+  return editor.posAtPageCoords({ x, y });
 }
 
 /** The link at the selection: its `href`, or `""`. */
@@ -350,6 +350,11 @@ export const CONTENT = { maxWidth: 768, gutter: 64 };
 /** Where top-level blocks' text starts in an editor `width` wide: the column every handle sits before. */
 export function textLeft(width: number): number {
   return Math.max(0, (width - Math.min(width, CONTENT.maxWidth)) / 2) + CONTENT.gutter;
+}
+
+/** Where the document column's text ends in an editor `width` wide (`pr-5`). */
+export function textRight(width: number): number {
+  return textLeft(width) - CONTENT.gutter + Math.min(width, CONTENT.maxWidth) - 20;
 }
 
 /** The classes of the editor's parts and the document's nodes and marks. */

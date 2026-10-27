@@ -10,10 +10,8 @@ import {
   type SlashItem,
   commands,
   blockAt,
-  blockRect,
   coordsAtPos,
   currentBlock,
-  dropTarget,
   editorClasses,
   firstLineRect,
   onEditorEvent,
@@ -24,9 +22,10 @@ import {
   NODE,
   SLASH_KEY,
   textLeft,
+  textRight,
   inTable,
 } from "../editor/setup";
-import { insertText, setNodeSelection } from "nsh/base";
+import { insertText } from "nsh/base";
 import { BubbleMenu } from "./BubbleMenu";
 import { Icon } from "./Icon";
 import { SlashMenu } from "./SlashMenu";
@@ -43,8 +42,6 @@ export interface VisualEditorActions {
 
 /** How far left of an item's text its handle goes: past the bullet, number or checkbox. */
 const ITEM_GUTTER = 30;
-/** How far the pointer moves on the grip before a press becomes a drag. */
-const DRAG_SLOP = 4;
 
 type Box = { x: number; y: number; width: number; height: number };
 
@@ -62,7 +59,6 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   const hovered = signal<number | null>(null);
   const focused = signal(false);
   const dragging = signal<number | null>(null);
-  const dropLine = signal<Box | null>(null);
   let hostWidth = 0;
   const matches = () => {
     const q = slashQuery();
@@ -160,14 +156,32 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     // Below the top level a block is a list or task item, whose marker sits left of its text.
     // Top-level blocks' handles share one column before the text, whatever the block's own padding (a code block, a quote).
     const item = target.depth > 1;
-    const box = item || hostWidth === 0 ? line : { ...line, x: textLeft(hostWidth), width: 1 };
+    const box = item || hostWidth === 0 ? line : { ...line, x: origin().x + textLeft(hostWidth), width: 1 };
     handle.set({ box, empty, pos: target.from + 1, item });
   };
+
+  /** The document position at a page point's height, its x held inside the text column (the handle's gutter maps to the block beside it). */
+  const blockPosAt = (pageX: number, pageY: number) => {
+    const left = origin().x;
+    const x = hostWidth > 0 ? Math.min(Math.max(pageX, left + textLeft(hostWidth) + 8), left + textRight(hostWidth) - 8) : pageX;
+    return nearestPos(x, pageY);
+  };
+
+  let retried = false;
 
   /** The pointer moved over the editor: the handle follows the block under it. */
   const hover = (pageX: number, pageY: number) => {
     if (dragging() !== null) return;
-    const pos = posAtCoords(editor, pageX - origin().x, pageY - origin().y);
+    // The block at the pointer's height, read inside the text column: moving left onto the handle keeps its block.
+    const pos = blockPosAt(pageX, pageY);
+    // The editor learns where it is on the page from the pointer's first move over it, which may reach it after
+    // this one: once, the hover is read again a frame later.
+    if (pos === null && !retried) {
+      retried = true;
+      setTimeout(() => hover(pageX, pageY), 16);
+      return;
+    }
+    retried = false;
     if (pos === null || pos === hovered()) return;
     hovered.set(pos);
     placeHandle(pos);
@@ -189,7 +203,8 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     handlers.shortcut = null;
   });
 
-  const at = (box: Box) => ({ origin: { x: origin().x + box.x, y: origin().y + box.y }, size: { width: Math.max(box.width, 1), height: box.height } });
+  // Boxes are in page coordinates already (`pageCoordsAtPos`).
+  const at = (box: Box) => ({ origin: { x: box.x, y: box.y }, size: { width: Math.max(box.width, 1), height: box.height } });
 
   /** The document position at a point, or, past the text's end (below the last block), at the nearest line above it. */
   const nearestPos = (x: number, y: number) => {
@@ -200,46 +215,11 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     return null;
   };
 
-  /** Where the dragged block lands, and the line showing it: nsh-richtext decides the place. */
-  const dropAt = (pageX: number, pageY: number) => {
-    const source = dragging();
-    if (source === null) return null;
-    const target = nearestPos(pageX - origin().x, pageY - origin().y);
-    if (target === null) return null;
-    const found = dropTarget(editor, source, target);
-    if (!found) return null;
-    const box = blockRect(editor, found.target);
-    const indent = box ? Math.max(box.x - 4, 0) : 0;
-    return {
-      source,
-      target,
-      line: box ? { x: indent, y: found.after ? box.y + box.height + 2 : box.y - 4, width: Math.max(hostWidth - indent, 1), height: 2 } : null,
-    };
-  };
-
-  const previewDrop = (pageX: number, pageY: number) => {
-    if (pressedAt && Math.hypot(pageX - pressedAt.x, pageY - pressedAt.y) <= DRAG_SLOP) return;
-    dropLine.set(dropAt(pageX, pageY)?.line ?? null);
-  };
-
-  /** Where the grip was pressed: a release near it is a press, not a drag. */
-  let pressedAt: { x: number; y: number } | null = null;
-
-  const cancelDrag = () => {
-    pressedAt = null;
+  /** Ends a handle drag: NSH's view drops the block at its drop cursor, or keeps it selected after a press. */
+  const endDrag = () => {
+    if (dragging() === null) return;
     dragging.set(null);
-    dropLine.set(null);
-  };
-
-  /** Drops the dragged block at the boundary shown by the insertion line. */
-  const drop = (pageX: number, pageY: number) => {
-    const source = dragging();
-    const moved = !!pressedAt && Math.hypot(pageX - pressedAt.x, pageY - pressedAt.y) > DRAG_SLOP;
-    const destination = moved ? dropAt(pageX, pageY) : null;
-    cancelDrag();
-    if (destination) editor.run(commands.moveBlock(destination.source, destination.target));
-    // A press without a drag selects the whole block (Tiptap's drag handle): Delete, copy and cut act on it.
-    else if (!moved && source !== null) editor.run(setNodeSelection(source - 1));
+    editor.endDrag();
     editor.focus();
   };
 
@@ -269,14 +249,6 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
           </If>
         }
       />
-      <If when={dropLine() !== null}>
-        <View
-          testID="block-drop-indicator"
-          pointerEvents="none"
-          class="absolute h-0.5 rounded bg-ring"
-          style={{ left: dropLine()?.x ?? 0, top: dropLine()?.y ?? 0, width: dropLine()?.width ?? 0, zIndex: 10 }}
-        />
-      </If>
       <If when={slashQuery() !== null}>
         <Overlay
           anchor={(() => {
@@ -293,7 +265,8 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
           <SlashMenu items={matches()} highlighted={highlighted()} onPick={pick} onHover={(v) => highlighted.set(v)} />
         </Overlay>
       </If>
-      <If when={(focused() || hovered() !== null || dragging() !== null) && handle() !== null && bubble() === null && !table() && slashQuery() === null}>
+      {/* While a drag runs the handle stays: it holds the press (a dragged table selects, which would hide it). */}
+      <If when={handle() !== null && (dragging() !== null || ((focused() || hovered() !== null) && bubble() === null && !table() && slashQuery() === null))}>
         {/* Anchored on the block's first line, centered on it, whatever the block's height. */}
         <Overlay anchor={at((handle() as { box: Box }).box)} placement="left" align="center" offset={handle()?.item ? ITEM_GUTTER : 6}>
           <View class="flex-row items-center gap-0.5">
@@ -317,14 +290,18 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
               tooltip="Drag to move, or Alt-↑ / Alt-↓"
               accessibilityLabel="Move block"
               onStartShouldSetResponder={() => true}
+              // The handle starts the view's own drag of the block (Tiptap's DragHandle over ProseMirror's): it
+              // selects the block, the drop cursor follows the pointer, and the view scrolls at its edges.
               onResponderGrant={(e) => {
-                pressedAt = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
-                dragging.set(handle()?.pos ?? null);
+                const pos = handle()?.pos;
+                if (pos === undefined) return false;
+                editor.dragBlock(pos - 1, { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY });
+                dragging.set(pos);
                 return true;
               }}
-              onResponderMove={(e) => previewDrop(e.nativeEvent.pageX, e.nativeEvent.pageY)}
-              onResponderRelease={(e) => drop(e.nativeEvent.pageX, e.nativeEvent.pageY)}
-              onResponderTerminate={cancelDrag}
+              onResponderMove={(e) => editor.dragTo({ x: e.nativeEvent.pageX, y: e.nativeEvent.pageY })}
+              onResponderRelease={endDrag}
+              onResponderTerminate={endDrag}
               onResponderTerminationRequest={() => false}
               class={`h-6 w-5 items-center justify-center rounded-md hover:bg-accent ${dragging() !== null ? "bg-accent" : ""}`}
             >
