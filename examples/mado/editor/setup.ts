@@ -380,16 +380,16 @@ export function textLeft(width: number): number {
   return Math.max(0, (width - Math.min(width, CONTENT.maxWidth)) / 2) + CONTENT.gutter;
 }
 
-/** Where the document column's text ends in an editor `width` wide (`pr-5`). */
+/** Where the document column's text ends in an editor `width` wide (`pr-8`: room for a table's add-column +). */
 export function textRight(width: number): number {
-  return textLeft(width) - CONTENT.gutter + Math.min(width, CONTENT.maxWidth) - 20;
+  return textLeft(width) - CONTENT.gutter + Math.min(width, CONTENT.maxWidth) - 32;
 }
 
 /** The classes of the editor's parts and the document's nodes and marks. */
 export const editorClasses: RichEditorClasses = {
   // `pl-16`: the gutter the block handle sits in, so it never covers the text in a narrow window.
   // Centered at a reading width inside the full-width scroll view (`CONTENT`).
-  content: "w-full max-w-3xl self-center gap-4 pl-16 pr-5 pt-4 pb-24",
+  content: "w-full max-w-3xl self-center gap-4 pl-16 pr-8 pt-4 pb-24",
   placeholder: "text-muted-foreground",
   listMarker: "text-muted-foreground",
   selectedNode: "outline outline-2 outline-blue-500 rounded-md",
