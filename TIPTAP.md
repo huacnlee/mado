@@ -17,7 +17,7 @@ GTK (`nsh test examples/mado --target linux`).
 | Mod-k link; a URL pasted on a selection links it; the caret in a link shows its bar (copy, open, edit, remove) | NSH, Mado | editing: "Mod-k…"; tiptap: "A URL pasted…" |
 | Mod-z / Shift-Mod-z / Mod-y | NSH | editing: "Mod-z undoes typing…"; tiptap: "Mod-y redoes…" |
 | Mod-Alt-c code block; Shift-Enter / Mod-Enter hard break | NSH | tiptap: "Mod-Alt-c…", "Shift-Enter…", "Mod-Enter…" |
-| Code block: Enter three times, Down at the end, Mod-Enter leave it | NSH | tiptap: three cases |
+| Code block: Enter three times, Down at the end, Mod-Enter leave it; Backspace in an empty one makes it a paragraph | NSH | tiptap: four cases |
 | Lists: Enter on an empty item leaves, Backspace at the start lifts, Tab / Shift-Tab nest | NSH | tiptap: two cases; editing: "Tab and Shift-Tab…" |
 | Quote: Backspace at the start lifts | NSH | tiptap: "Backspace at a quote's start…" |
 | Gap cursor before and after blocks the caret cannot enter (divider, table) | NSH | tiptap: two gap cases; editing: "the caret moves down across a divider…" |

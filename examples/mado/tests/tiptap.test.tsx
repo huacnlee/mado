@@ -38,6 +38,7 @@ const CASES: Case[] = [
   { name: "Mod-, makes the selection subscript", doc: "Para\n", at: "Para", keys: ["home", "shift+end", "mod+,"], saved: "<sub>Para</sub>\n" },
   { name: "Mod-Shift-h highlights the selection", doc: "Para\n", at: "Para", keys: ["home", "shift+end", "mod+shift+h"], saved: "==Para==\n" },
   { name: "Mod-Enter breaks the line inside a paragraph", doc: "ab\n", at: "ab", keys: ["end", "mod+enter"], type: "c", saved: "ab\\\nc\n" },
+  { name: "Backspace in an empty code block makes it a paragraph", doc: "Para\n\n```\nx\n```\n", at: "x", keys: ["end", "backspace", "backspace"], type: "Y", saved: "Para\n\nY\n" },
 ];
 
 for (const c of CASES) {
