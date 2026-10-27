@@ -330,7 +330,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
         // The first layout of a new document gives its empty line a place.
         placeHandle(hovered() ?? editor.selection.head ?? 0);
       }}
-      onHoverMove={(e) => hover(e.pagePosition.x, e.pagePosition.y)}
+      onMouseMove={(e) => hover(e.pagePosition.x, e.pagePosition.y)}
       onFileDrop={(e) => insertImageFiles(e.uris, e.pagePosition)}
     >
       <RichEditor
