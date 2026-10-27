@@ -78,7 +78,7 @@ export function TopBar(props: TopBarProps) {
           when={renaming()}
           else={
             <Button testID="title" accessibilityLabel={`Rename ${props.title}`} onPress={startRename} class="flex-row items-center gap-2 rounded-lg px-2 py-1 hover:bg-accent">
-              <Text numberOfLines={1} class="text-sm font-medium text-foreground">
+              <Text class="line-clamp-1 text-sm font-medium text-foreground">
                 {props.title}
               </Text>
               <If when={props.dirty}>

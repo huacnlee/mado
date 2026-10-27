@@ -51,8 +51,7 @@ export function Icon(props: { name: IconName; size?: number; tint?: string; stro
   const size = () => props.size ?? 16;
   return (
     <Canvas
-      pointerEvents="none"
-      style={{ width: size(), height: size() }}
+      style={{ width: size(), height: size(), pointerEvents: "none" }}
       draw={(cx, { width }) => {
         cx.scale(width / 24, width / 24);
         cx.strokeStyle = props.tint ?? token("foreground");

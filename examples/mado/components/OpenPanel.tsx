@@ -19,10 +19,10 @@ function FileRow(props: { file: string; current: boolean; onOpen: (file: string)
     >
       <Icon name="file-text" size={15} tint={props.current ? token("brand") : token("muted-foreground")} />
       <View class="flex-1">
-        <Text numberOfLines={1} class="text-sm text-foreground">
+        <Text class="line-clamp-1 text-sm text-foreground">
           {path.basename(props.file)}
         </Text>
-        <Text numberOfLines={1} class="text-xs text-muted-foreground">
+        <Text class="line-clamp-1 text-xs text-muted-foreground">
           {displayPath(path.dirname(props.file))}
         </Text>
       </View>

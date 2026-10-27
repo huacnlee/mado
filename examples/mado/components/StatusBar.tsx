@@ -17,7 +17,7 @@ export function StatusBar(props: { words: number; characters: number; dirty: boo
         {`${readingMinutes(props.words)} min read`}
       </Text>
       <View class="flex-1" />
-      <Text numberOfLines={1} class="shrink text-xs text-muted-foreground">
+      <Text class="line-clamp-1 shrink text-xs text-muted-foreground">
         {props.status ?? ""}
       </Text>
       <View class="flex-row items-center gap-1.5">

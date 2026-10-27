@@ -45,7 +45,7 @@ export function LinkPanel(props: { editor: RichEditorSession; onClose: () => voi
         </If>
       </View>
       <If when={current}>
-        <Text numberOfLines={1} class="text-xs text-muted-foreground">
+        <Text class="line-clamp-1 text-xs text-muted-foreground">
           {current}
         </Text>
       </If>
