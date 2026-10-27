@@ -48,7 +48,7 @@ GTK (`nsh test examples/mado --target linux`).
 
 ## Not covered
 
-- Mod-click and Mod-drag run headless: `keyboard.down` holds keys there only.
+- Mod-click and Mod-drag run headless and on Linux: `keyboard.down` holds keys there; the other real targets refuse it.
 - The drag preview while a drag runs: `nsh/test`'s drag is one step (checked by a GTK screenshot).
 - `nsh-compat` (`cargo xtask compat`) does not build against NSH's `main` (it still uses `nsh_core::ui` and
   `PatchValue`); the new APIs' case (`tests/compat/cases/base`, step `Page`) passes when run directly.

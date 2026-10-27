@@ -380,7 +380,7 @@ test("Mod-click opens a link while editing", async () => {
   expect(app.openedUrls()).toEqual([]);
   // Past the double-click interval: a second, separate click.
   await app.wait(600);
-  // Headless only: a real target holds no keys yet.
+  // Where the target holds keys (headless, Linux).
   if (!(await holdKeys(app, "mod"))) return;
   await app.press(label);
   await app.keyboard.up("mod");
@@ -391,7 +391,7 @@ test("Mod-click opens a link while editing", async () => {
 test("a Mod-drag across blocks selects them whole", async () => {
   const app = await openMado({ files: { "md.md": "First line\n\nSecond line\n\nThird\n" }, recent: ["md.md"] });
   await app.waitFor("Third");
-  // Headless only: a real target holds no keys yet.
+  // Where the target holds keys (headless, Linux).
   if (!(await holdKeys(app, "mod"))) return;
   await app.drag("First line", { x: 0, y: 44 });
   await app.keyboard.up("mod");
