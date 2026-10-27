@@ -11,12 +11,12 @@ GTK (`nsh test examples/mado --target linux`).
 | --- | --- | --- |
 | Markdown input rules: `# `, `- `, `1. `, `[ ] `, `> `, `**b**`, `~~s~~`, `==h==` | NSH, kit | editing: "# and a space make a heading…", "**text**…", "==highlights==…" |
 | Typography: `--` `(c)` `...` `->` | NSH | tiptap: "Typography…" |
-| Mod-b / i / u / e / Shift-s / Shift-h marks | NSH | tiptap: "Mod-Shift-s…", "Mod-e…"; editing: bold |
+| Mod-b / i / u / e / . / , / Shift-s / Shift-h marks; underline, superscript and subscript saved as `<u>` `<sup>` `<sub>` | NSH, kit | tiptap: "Mod-Shift-s…", "Mod-e…", "Mod-u…", "Mod-.…", "Mod-,…", "Mod-Shift-h…"; editing: bold |
 | Mod-Alt-0…6 headings | NSH | tiptap: "Mod-Alt-2…", "Mod-Alt-0…" |
 | Mod-Shift-7 / 8 / 9 lists, Mod-Shift-b quote | NSH | tiptap: four cases |
 | Mod-k link; a URL pasted on a selection links it; the caret in a link shows its bar (copy, open, edit, remove) | NSH, Mado | editing: "Mod-k…"; tiptap: "A URL pasted…" |
 | Mod-z / Shift-Mod-z / Mod-y | NSH | editing: "Mod-z undoes typing…"; tiptap: "Mod-y redoes…" |
-| Mod-Alt-c code block; Shift-Enter hard break | NSH | tiptap: "Mod-Alt-c…", "Shift-Enter…" |
+| Mod-Alt-c code block; Shift-Enter / Mod-Enter hard break | NSH | tiptap: "Mod-Alt-c…", "Shift-Enter…", "Mod-Enter…" |
 | Code block: Enter three times, Down at the end, Mod-Enter leave it | NSH | tiptap: three cases |
 | Lists: Enter on an empty item leaves, Backspace at the start lifts, Tab / Shift-Tab nest | NSH | tiptap: two cases; editing: "Tab and Shift-Tab…" |
 | Quote: Backspace at the start lifts | NSH | tiptap: "Backspace at a quote's start…" |

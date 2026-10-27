@@ -2,7 +2,10 @@
 //! Obsidian and Tiptap's Markdown read it). NSH's Markdown format reads
 //! CommonMark with GFM's strikethrough; this layer turns `==` pairs in a
 //! textblock's text into highlight marks after reading, and highlight marks
-//! into `==` pairs before writing, so a highlight survives a save.
+//! into `==` pairs before writing, so a highlight survives a save. Underline,
+//! superscript and subscript, which Markdown has no syntax for, are written
+//! as the inline HTML `<u>`, `<sup>` and `<sub>` (as GitHub shows them) and
+//! read back the same way.
 
 use nsh_base::rich_editor::{
     formats::{DocFormat, MarkdownFormat, MarkdownNames},
@@ -43,21 +46,34 @@ pub fn parse(schema: &Schema, markdown: &str) -> Result<Node, String> {
     let doc = format()
         .parse(schema, markdown)
         .map_err(|e| e.to_string())?;
-    if schema.mark_type(HIGHLIGHT).is_none() {
-        return Ok(doc);
-    }
     let mut json = doc.to_json();
-    highlight_pairs(&mut json);
+    if schema.mark_type(HIGHLIGHT).is_some() {
+        pair_marks(&mut json, HIGHLIGHT, DELIMITER, DELIMITER);
+    }
+    for (mark, open, close) in TAGS {
+        if schema.mark_type(mark).is_some() {
+            pair_marks(&mut json, mark, open, close);
+        }
+    }
     Node::from_json(schema, &json).map_err(|e| e.to_string())
 }
 
 /// Writes `doc` as Markdown, its highlights as `==text==`.
 pub fn serialize(doc: &Node) -> Result<String, String> {
     let mut json = doc.to_json();
-    delimit_highlights(&mut json);
+    delimit(&mut json, HIGHLIGHT, DELIMITER, DELIMITER);
+    for (k, (mark, ..)) in TAGS.iter().enumerate() {
+        delimit(&mut json, mark, &placeholder(k, false), &placeholder(k, true));
+    }
     let plain = Node::from_json(doc.ty().schema(), &json).map_err(|e| e.to_string())?;
     let markdown = format().serialize(&plain).map_err(|e| e.to_string())?;
-    Ok(one_final_newline(unescape_line_starts(&markdown)))
+    let mut markdown = unescape_line_starts(&markdown);
+    for (k, (_, open, close)) in TAGS.iter().enumerate() {
+        markdown = markdown
+            .replace(&placeholder(k, false), open)
+            .replace(&placeholder(k, true), close);
+    }
+    Ok(one_final_newline(markdown))
 }
 
 /// The empty paragraph an editor keeps after a last block that is not one
@@ -96,8 +112,25 @@ fn unescape_line_starts(markdown: &str) -> String {
         .collect()
 }
 
-/// Turns the `==` pairs of each textblock (outside code) into highlights.
-fn highlight_pairs(node: &mut Value) {
+/// The marks written as inline HTML tags, which CommonMark reads as raw
+/// HTML (text here) and this layer pairs into marks: (mark, open, close).
+const TAGS: [(&str, &str, &str); 3] = [
+    ("underline", "<u>", "</u>"),
+    ("superscript", "<sup>", "</sup>"),
+    ("subscript", "<sub>", "</sub>"),
+];
+
+/// What a tag is written as before the Markdown writer runs, which would
+/// escape its `<`: private-use characters it leaves alone, replaced with
+/// the tag after.
+fn placeholder(tag: usize, close: bool) -> String {
+    format!("\u{E000}{}{}\u{E001}", tag, if close { "c" } else { "o" })
+}
+
+/// Turns the `open` … `close` pairs of each textblock (outside code) into
+/// `mark`s; `open == close` toggles (`==`), and a delimiter without its
+/// pair stays text.
+fn pair_marks(node: &mut Value, mark: &str, open: &str, close: &str) {
     let Some(children) = node.get_mut("content").and_then(Value::as_array_mut) else {
         return;
     };
@@ -106,28 +139,49 @@ fn highlight_pairs(node: &mut Value) {
         .any(|c| c.get("type").and_then(Value::as_str) == Some("text"))
     {
         for child in children.iter_mut() {
-            highlight_pairs(child);
+            pair_marks(child, mark, open, close);
         }
         return;
     }
-    // The delimiters, as (child, byte offset), outside code; an odd last one stays text.
-    let mut found = Vec::new();
+    // Every delimiter, as (child, byte offset, length, opens), outside code.
+    let mut tokens = Vec::new();
     for (i, child) in children.iter().enumerate() {
         if has_mark(child, "code") {
             continue;
         }
         if let Some(text) = child.get("text").and_then(Value::as_str) {
             let mut from = 0;
-            while let Some(at) = text[from..].find(DELIMITER) {
-                found.push((i, from + at));
-                from += at + DELIMITER.len();
+            loop {
+                let o = text[from..].find(open).map(|at| (from + at, open.len(), true));
+                let c = (open != close)
+                    .then(|| text[from..].find(close).map(|at| (from + at, close.len(), false)))
+                    .flatten();
+                let Some((at, len, opens)) = [o, c].into_iter().flatten().min_by_key(|t| t.0)
+                else {
+                    break;
+                };
+                tokens.push((i, at, len, opens));
+                from = at + len;
             }
         }
     }
-    if found.len() % 2 == 1 {
-        found.pop();
+    // The delimiters that pair: an open then the next close (or the next
+    // `==`); the rest stay text.
+    let mut used = Vec::new();
+    let mut pending = None;
+    for (k, &(_, _, _, opens)) in tokens.iter().enumerate() {
+        match pending {
+            None if opens => pending = Some(k),
+            Some(o) if open == close || !opens => {
+                used.push(o);
+                used.push(k);
+                pending = None;
+            }
+            Some(_) => pending = Some(k),
+            None => {}
+        }
     }
-    if found.is_empty() {
+    if used.is_empty() {
         return;
     }
     let mut out = Vec::new();
@@ -139,40 +193,39 @@ fn highlight_pairs(node: &mut Value) {
         };
         let marks = marks_of(child);
         let mut start = 0;
-        let cuts: Vec<usize> = found
-            .iter()
-            .filter(|(c, _)| *c == i)
-            .map(|(_, at)| *at)
-            .collect();
         let mut push = |piece: &str, on: bool| {
             if piece.is_empty() {
                 return;
             }
             let mut marks = marks.clone();
             if on {
-                marks.push(json!({ "type": HIGHLIGHT }));
+                marks.push(json!({ "type": mark }));
             }
             out.push(text_node(piece, marks));
         };
-        for at in cuts {
+        for &k in &used {
+            let (c, at, len, _) = tokens[k];
+            if c != i {
+                continue;
+            }
             push(&text[start..at], on);
             on = !on;
-            start = at + DELIMITER.len();
+            start = at + len;
         }
         push(&text[start..], on);
     }
     *children = out;
 }
 
-/// Puts `==` around each run of highlighted text and drops the mark.
-fn delimit_highlights(node: &mut Value) {
+/// Puts `open` and `close` around each run of `mark`ed text and drops the mark.
+fn delimit(node: &mut Value, mark: &str, open: &str, close: &str) {
     let Some(children) = node.get_mut("content").and_then(Value::as_array_mut) else {
         return;
     };
     for child in children.iter_mut() {
-        delimit_highlights(child);
+        delimit(child, mark, open, close);
     }
-    let lit: Vec<bool> = children.iter().map(|c| has_mark(c, HIGHLIGHT)).collect();
+    let lit: Vec<bool> = children.iter().map(|c| has_mark(c, mark)).collect();
     for i in 0..children.len() {
         if !lit[i] {
             continue;
@@ -187,14 +240,14 @@ fn delimit_highlights(node: &mut Value) {
         let closes = i + 1 == lit.len() || !lit[i + 1];
         let text = format!(
             "{}{}{}",
-            if opens { DELIMITER } else { "" },
+            if opens { open } else { "" },
             text,
-            if closes { DELIMITER } else { "" }
+            if closes { close } else { "" }
         );
         child["text"] = Value::from(text);
         let marks: Vec<Value> = marks_of(child)
             .into_iter()
-            .filter(|m| m.get("type").and_then(Value::as_str) != Some(HIGHLIGHT))
+            .filter(|m| m.get("type").and_then(Value::as_str) != Some(mark))
             .collect();
         if marks.is_empty() {
             child.as_object_mut().map(|o| o.remove("marks"));
@@ -246,6 +299,19 @@ mod tests {
     fn a_lone_delimiter_stays_text() {
         let doc = parse(&starter::schema(), "x == y\n").unwrap();
         assert_eq!(serialize(&doc).unwrap().trim(), "x == y");
+    }
+
+    #[test]
+    fn underline_superscript_and_subscript_are_written_as_tags() {
+        let md = "<u>under</u>, x<sup>2</sup> and H<sub>2</sub>O, a <u lone.\n";
+        let doc = parse(&starter::schema(), md).unwrap();
+        let json = doc.to_json();
+        let runs = json["content"][0]["content"].as_array().unwrap();
+        assert_eq!(runs[0]["text"], "under");
+        assert_eq!(runs[0]["marks"][0]["type"], "underline");
+        // A lone `<` is plain text, escaped.
+        assert_eq!(serialize(&doc).unwrap(), md.replace("a <u", "a \\<u"));
+        assert_eq!(parse(&starter::schema(), &serialize(&doc).unwrap()).unwrap().to_json(), json);
     }
 
     #[test]

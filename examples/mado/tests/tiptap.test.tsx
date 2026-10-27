@@ -33,6 +33,11 @@ const CASES: Case[] = [
   { name: "Mod-Alt-c makes a code block", doc: "Para\n", at: "Para", keys: ["mod+alt+c"], saved: "```\nPara\n```\n" },
   { name: "Shift-Enter breaks the line inside a paragraph", doc: "ab\n", at: "ab", keys: ["end", "shift+enter"], type: "c", saved: "ab\\\nc\n" },
   { name: "Mod-y redoes what Mod-z undid", doc: "Para\n", at: "Para", keys: ["mod+alt+2", "mod+z", "mod+y"], saved: "## Para\n" },
+  { name: "Mod-u underlines the selection", doc: "Para\n", at: "Para", keys: ["home", "shift+end", "mod+u"], saved: "<u>Para</u>\n" },
+  { name: "Mod-. makes the selection superscript", doc: "Para\n", at: "Para", keys: ["home", "shift+end", "mod+."], saved: "<sup>Para</sup>\n" },
+  { name: "Mod-, makes the selection subscript", doc: "Para\n", at: "Para", keys: ["home", "shift+end", "mod+,"], saved: "<sub>Para</sub>\n" },
+  { name: "Mod-Shift-h highlights the selection", doc: "Para\n", at: "Para", keys: ["home", "shift+end", "mod+shift+h"], saved: "==Para==\n" },
+  { name: "Mod-Enter breaks the line inside a paragraph", doc: "ab\n", at: "ab", keys: ["end", "mod+enter"], type: "c", saved: "ab\\\nc\n" },
 ];
 
 for (const c of CASES) {
