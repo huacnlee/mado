@@ -176,6 +176,24 @@ test("while a block is dragged its preview shows until the drop", async () => {
   expect(text.trim()).toBe("Second block\n\nFirst block\n\nThird block");
 });
 
+test("pasting an image file inserts it as an image", async () => {
+  const app = await openMado({ files: { "img.md": "Before\n" }, recent: ["img.md"] });
+  await app.press("Before");
+  await app.keyboard.press("end");
+  await app.paste("label:Document", { uris: ["file:///pics/cat.png"] });
+  const text = await saveAndRead(app, "img.md", (t) => t.includes("cat.png"));
+  expect(text).toContain("![cat.png](/pics/cat.png)");
+});
+
+test("pasting a screenshot's bytes inserts it inline", async () => {
+  const app = await openMado({ files: { "shot.md": "Before\n" }, recent: ["shot.md"] });
+  await app.press("Before");
+  await app.keyboard.press("end");
+  await app.paste("label:Document", { files: ["examples/mado/assets/mado.png"] });
+  const text = await saveAndRead(app, "shot.md", (t) => t.includes("data:image/png"));
+  expect(text).toContain("](data:image/png;base64,iVBOR");
+});
+
 test("Alt arrows move blocks up and down", async () => {
   const app = await openMado({ files: { "move.md": "First\n\nSecond\n" }, recent: ["move.md"] });
   await app.press("Second");

@@ -26,6 +26,8 @@ import {
   inTable,
 } from "../editor/setup";
 import { insertText } from "nsh/base";
+import { Buffer } from "buffer";
+import * as path from "path";
 import { FloatingMenu } from "./FloatingMenu";
 import { BubbleMenu } from "./BubbleMenu";
 import { Icon } from "./Icon";
@@ -281,6 +283,16 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
         autoFocus
         onFocus={() => focused.set(true)}
         onBlur={() => focused.set(false)}
+        onPasteFiles={(paste) => {
+          // Tiptap's file handler: pasted images become image blocks. Local files by their path, a screenshot's bytes inline.
+          for (const uri of paste.uris) {
+            const file = decodeURIComponent(uri.replace(/^file:\/\//, ""));
+            if (/\.(png|jpe?g|gif|webp|svg)$/i.test(file)) editor.run(commands.image(file, path.basename(file)));
+          }
+          for (const file of paste.files) {
+            if (file.mime.startsWith("image/")) editor.run(commands.image(`data:${file.mime};base64,${Buffer.from(file.data).toString("base64")}`, file.name));
+          }
+        }}
         bubbleMenu={
           <If when={slashQuery() === null && (bubble() !== null || table())}>
             <If when={bubble() !== null} else={<TableMenu editor={editor} />}>
