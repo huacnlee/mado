@@ -314,6 +314,27 @@ test("nested list markers change by level", async () => {
   expect(app.count("•")).toBe(2);
 });
 
+test("the caret in a link shows its bar: Edit changes the address, Remove unlinks", async () => {
+  const app = await openMado({ files: { "lnk.md": "See [docs](https://a.example) here\n" }, recent: ["lnk.md"] });
+  await app.press("See docs here");
+  await app.keyboard.press("home");
+  for (let i = 0; i < 6; i++) await app.keyboard.press("right");
+  await app.waitFor("id:link-bar");
+  expect(app.shows("https://a.example")).toBe(true);
+  await app.press("id:link-edit");
+  await app.clear("id:link-bar-input");
+  await app.type("id:link-bar-input", "b.example");
+  await app.press("id:link-apply-bar");
+  await saveAndRead(app, "lnk.md", (t) => t.includes("https://b.example"));
+  await app.press("See docs here");
+  await app.keyboard.press("home");
+  for (let i = 0; i < 6; i++) await app.keyboard.press("right");
+  await app.waitFor("id:link-bar-remove");
+  await app.press("id:link-bar-remove");
+  const text = await saveAndRead(app, "lnk.md", (t) => !t.includes("]("));
+  expect(text).toBe("See docs here\n");
+});
+
 test("==highlights== load as highlights and are saved back", async () => {
   const app = await openMado({ files: { "hl.md": "Some ==marked== words\n" }, recent: ["hl.md"] });
   await app.waitFor("Some marked words");

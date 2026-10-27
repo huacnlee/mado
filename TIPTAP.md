@@ -14,7 +14,7 @@ GTK (`nsh test examples/mado --target linux`).
 | Mod-b / i / u / e / Shift-s / Shift-h marks | NSH | tiptap: "Mod-Shift-s…", "Mod-e…"; editing: bold |
 | Mod-Alt-0…6 headings | NSH | tiptap: "Mod-Alt-2…", "Mod-Alt-0…" |
 | Mod-Shift-7 / 8 / 9 lists, Mod-Shift-b quote | NSH | tiptap: four cases |
-| Mod-k link; a URL pasted on a selection links it | NSH, Mado | editing: "Mod-k…"; tiptap: "A URL pasted…" |
+| Mod-k link; a URL pasted on a selection links it; the caret in a link shows its bar (copy, open, edit, remove) | NSH, Mado | editing: "Mod-k…"; tiptap: "A URL pasted…" |
 | Mod-z / Shift-Mod-z / Mod-y | NSH | editing: "Mod-z undoes typing…"; tiptap: "Mod-y redoes…" |
 | Mod-Alt-c code block; Shift-Enter hard break | NSH | tiptap: "Mod-Alt-c…", "Shift-Enter…" |
 | Code block: Enter three times, Down at the end, Mod-Enter leave it | NSH | tiptap: three cases |

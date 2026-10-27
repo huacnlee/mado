@@ -24,11 +24,13 @@ import {
   textLeft,
   textRight,
   inTable,
+  linkHref,
 } from "../editor/setup";
 import { insertText } from "nsh/base";
 import { Buffer } from "buffer";
 import * as path from "path";
 import { FloatingMenu } from "./FloatingMenu";
+import { LinkBar } from "./LinkBar";
 import { BubbleMenu } from "./BubbleMenu";
 import { Icon } from "./Icon";
 import { SlashMenu } from "./SlashMenu";
@@ -57,6 +59,9 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   const bubble = signal<Box | null>(null);
   /** The caret is in a table: the bubble menu shows its rows and columns. */
   const table = signal(false);
+  /** The link the caret rests in: its bar shows under it. */
+  const link = signal("");
+  const linkEditing = signal(false);
   const handle = signal<{ box: Box; empty: boolean; pos: number; item: boolean } | null>(null);
   /** The block the pointer is over, which the handle follows before the caret's. */
   const hovered = signal<number | null>(null);
@@ -146,6 +151,9 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     void measure();
     bubble.set(!empty && selection.type === "text" ? selectionRect(editor) : null);
     table.set(inTable(editor));
+    const href = empty && selection.type === "text" ? linkHref(editor) : "";
+    if (href !== link()) linkEditing.set(false);
+    link.set(href);
     placeHandle(hovered() ?? head, block);
   };
 
@@ -299,11 +307,16 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
             if (file.mime.startsWith("image/")) editor.run(commands.image(`data:${file.mime};base64,${Buffer.from(file.data).toString("base64")}`, file.name));
           }
         }}
+        bubbleMenuPlacement={link() && bubble() === null ? "bottom" : "top"}
         bubbleMenu={
+          <If when={slashQuery() === null && bubble() === null && link() !== "" && (focused() || linkEditing())} else={
           <If when={slashQuery() === null && (bubble() !== null || table())}>
             <If when={bubble() !== null} else={<TableMenu editor={editor} />}>
               <BubbleMenu editor={editor} revision={props.revision} onLink={props.actions.openLink} />
             </If>
+          </If>
+          }>
+            <LinkBar editor={editor} href={link()} editing={linkEditing} />
           </If>
         }
       />

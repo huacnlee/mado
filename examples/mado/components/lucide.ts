@@ -20,6 +20,7 @@ export const lucide = {
   "column-delete": [{"tag": "rect", "x": 4.0, "y": 3.0, "width": 7.0, "height": 18.0, "rx": 1.5}, {"tag": "path", "d": "m15.5 9.5 5 5"}, {"tag": "path", "d": "m20.5 9.5-5 5"}],
   "column-insert-left": [{"tag": "rect", "x": 13.0, "y": 3.0, "width": 7.0, "height": 18.0, "rx": 1.5}, {"tag": "path", "d": "M3 12h6"}, {"tag": "path", "d": "M6 9v6"}],
   "column-insert-right": [{"tag": "rect", "x": 4.0, "y": 3.0, "width": 7.0, "height": 18.0, "rx": 1.5}, {"tag": "path", "d": "M15 12h6"}, {"tag": "path", "d": "M18 9v6"}],
+  "copy": [{"tag": "rect", "x": 8.0, "y": 8.0, "width": 14.0, "height": 14.0, "rx": 2.0}, {"tag": "path", "d": "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"}],
   "external-link": [{"tag": "path", "d": "M15 3h6v6"}, {"tag": "path", "d": "M10 14 21 3"}, {"tag": "path", "d": "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"}],
   "eye": [{"tag": "path", "d": "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"}, {"tag": "circle", "cx": 12.0, "cy": 12.0, "r": 3.0}],
   "file-code": [{"tag": "path", "d": "M10 12.5 8 15l2 2.5"}, {"tag": "path", "d": "m14 12.5 2 2.5-2 2.5"}, {"tag": "path", "d": "M14 2v4a2 2 0 0 0 2 2h4"}, {"tag": "path", "d": "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"}],
