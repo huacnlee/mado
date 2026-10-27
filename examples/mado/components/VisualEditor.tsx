@@ -325,7 +325,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
       </If>
       <If when={preview() !== null}>
         <Overlay anchor={{ origin: { x: preview()?.x ?? 0, y: preview()?.y ?? 0 }, size: { width: 1, height: 1 } }} placement="right" align="center" offset={12}>
-          <View testID="drag-preview" class="max-w-80 rounded-md border border-border bg-background px-2 py-1 opacity-80 shadow-md">
+          <View testID="drag-preview" class="max-w-96 rounded-md border-2 border-blue-500 bg-background/70 px-2 py-1 opacity-70">
             <Text class="line-clamp-1 text-sm text-foreground">
               {preview()?.text || " "}
             </Text>

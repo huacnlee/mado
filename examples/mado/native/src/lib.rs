@@ -10,6 +10,8 @@ pub struct Dialogs;
 impl Dialogs {
     /// Asks for a Markdown file to open: its path, or `null` when cancelled.
     pub async fn open_markdown(directory: Option<String>) -> Option<String> {
+        // rfd's async-std backend: zbus runs on its own executor, as NSH
+        // polls this future without a Tokio runtime.
         let mut dialog = rfd::AsyncFileDialog::new()
             .set_title("Open")
             .add_filter("Markdown", &["md", "markdown", "mdown", "txt"]);

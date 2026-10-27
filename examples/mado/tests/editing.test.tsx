@@ -275,6 +275,33 @@ test("hovering a list item shows its handle, and dragging it moves the item alon
   expect(text).toMatch(/^Intro\n\n[-*] One\n[-*] Three\n[-*] Two/);
 });
 
+test("a task dragged above a paragraph leaves its list for a list of its own", async () => {
+  const app = await openMado({ files: { "out.md": "Intro\n\nMiddle\n\n- [ ] Write\n- [x] Second task\n\nAfter\n" }, recent: ["out.md"] });
+  await app.press("Second task");
+  await app.waitFor("id:block-grip");
+  await app.drag("id:block-grip", { x: 100, y: -80 });
+  const text = await saveAndRead(app, "out.md", (t) => t.indexOf("Second task") < t.indexOf("Middle"));
+  expect(text).toBe("Intro\n\n- [x] Second task\n\nMiddle\n\n- [ ] Write\n\nAfter\n");
+});
+
+test("a list item dropped just above its list stays in it", async () => {
+  const app = await openMado({ files: { "join.md": "Intro\n\nMiddle\n\n- [ ] Write\n- [x] Second task\n\nAfter\n" }, recent: ["join.md"] });
+  await app.press("Second task");
+  await app.waitFor("id:block-grip");
+  await app.drag("id:block-grip", { x: 100, y: -60 });
+  const text = await saveAndRead(app, "join.md", (t) => t.indexOf("Second task") < t.indexOf("Write"));
+  expect(text).toBe("Intro\n\nMiddle\n\n- [x] Second task\n- [ ] Write\n\nAfter\n");
+});
+
+test("the only item dragged out of its list takes the list along", async () => {
+  const app = await openMado({ files: { "only.md": "Intro\n\n- one\n\nAfter\n\nEnd\n" }, recent: ["only.md"] });
+  await app.press("one");
+  await app.waitFor("id:block-grip");
+  await app.drag("id:block-grip", { x: 100, y: 50 });
+  const text = await saveAndRead(app, "only.md", (t) => t.indexOf("one") > t.indexOf("After"));
+  expect(text).toBe("Intro\n\nAfter\n\n- one\n\nEnd\n");
+});
+
 test("==highlights== load as highlights and are saved back", async () => {
   const app = await openMado({ files: { "hl.md": "Some ==marked== words\n" }, recent: ["hl.md"] });
   await app.waitFor("Some marked words");
