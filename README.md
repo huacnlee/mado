@@ -8,6 +8,10 @@ each platform's own UI on macOS, Windows, Linux and the web.
 **Mado** (`examples/mado`), a Markdown editor, is its example: a whole app built on the kit. `examples/minimal` is
 the smallest one: the kit's extension, a toolbar of its commands and the document as Markdown.
 
+> **A demo, not a maintained product.** nsh-richtext and Mado show what NSH's `RichEditor` can carry: the goal is a
+> kernel good enough, as ProseMirror is, for third parties and NSH apps to build editors like Allsum's on it. This
+> repository is not maintained as a Tiptap counterpart; whoever wants one is welcome to build on it.
+
 ```
 crates/nsh-richtext/   the kit (Rust): extensions, commands, block moving, slash items, text counts
 examples/mado/         Mado: a TSX app on the kit, with a small crate of its own (native/, the open dialog)
