@@ -56,6 +56,40 @@ pub fn cell_range(doc: &Node, anchor: usize, head: usize) -> Option<CellRange> {
     })
 }
 
+/// The edges of the table around a position: where it starts and ends and
+/// the cells a row or column added at its end goes after.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, JsObject)]
+#[non_exhaustive]
+pub struct TableEdges {
+    /// The position before the table.
+    pub from: usize,
+    /// The position after it.
+    pub to: usize,
+    /// A text position in the last row's last cell.
+    pub last_cell: usize,
+    /// A text position in the first row's last cell.
+    pub last_column: usize,
+}
+
+/// The table `pos` is in, by its edges; none outside a table.
+pub fn table_edges(doc: &Node, pos: usize) -> Option<TableEdges> {
+    let rp = doc.resolve(pos).ok()?;
+    let depth = (0..=rp.depth)
+        .rev()
+        .find(|&d| table_role(rp.node(d).ty()) == Some(TableRole::Table))?;
+    let table = rp.node(depth);
+    let start = rp.start(depth);
+    let map = TableMap::get(table);
+    // A cell's offset in the table, then into its first textblock.
+    let inside = |offset: usize| start + offset + 2;
+    Some(TableEdges {
+        from: rp.before(depth),
+        to: rp.after(depth),
+        last_cell: inside(*map.map.last()?),
+        last_column: inside(map.map[map.width - 1]),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::cell_range;
@@ -82,5 +116,9 @@ mod tests {
         );
         let range = cell_range(&doc, cells[2], cells[3]).unwrap();
         assert_eq!((range.kind.as_str(), range.from, range.to), ("row", 1, 2));
+        let edges = super::table_edges(&doc, cells[0] + 2).unwrap();
+        assert_eq!((edges.from, edges.to), (0, doc.content().size()));
+        assert_eq!(edges.last_cell, cells[3] + 2);
+        assert_eq!(edges.last_column, cells[1] + 2);
     }
 }

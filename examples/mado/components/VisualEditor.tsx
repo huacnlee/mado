@@ -26,8 +26,9 @@ import {
   inTable,
   linkHref,
   cellRange,
+  tableEdges,
 } from "../editor/setup";
-import { insertContentAt, insertText } from "nsh/base";
+import { chain, command as named, insertContentAt, insertText, setTextSelection } from "nsh/base";
 import { Buffer } from "buffer";
 import * as path from "path";
 import { FloatingMenu } from "./FloatingMenu";
@@ -65,6 +66,26 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   /** The link the caret rests in: its bar shows under it. */
   const link = signal("");
   const linkEditing = signal(false);
+  /** The table the caret is in, by its box in the page and its edges: the row and column adders sit along it. */
+  const tableBox = signal<{ box: Box; lastCell: number; lastColumn: number } | null>(null);
+  let tableRetries = 0;
+  const placeTableAdders = () => {
+    const edges = tableEdges(editor);
+    const first = edges && coordsAtPos(editor, edges.from + 4);
+    const last = edges && coordsAtPos(editor, edges.lastCell);
+    if (!edges) return tableBox.set(null);
+    // A row or column just added has no layout yet: read it again over the next frames.
+    if (!first || !last || hostWidth === 0) {
+      if (tableRetries++ < 10) setTimeout(placeTableAdders, 16);
+      return;
+    }
+    tableRetries = 0;
+    // The cells' text sits inside their padding (py-2) and the table spans the text column.
+    const left = origin().x + textLeft(hostWidth) - 0;
+    const top = first.y - 9;
+    const bottom = last.y + last.height + 9;
+    tableBox.set({ box: { x: left, y: top, width: origin().x + textRight(hostWidth) + 20 - left, height: bottom - top }, lastCell: edges.lastCell, lastColumn: edges.lastColumn });
+  };
   /** Whole columns or rows selected (by a grip): their menu shows instead of the table's bar. */
   const axis = signal<CellRange | null>(null);
   const handle = signal<{ box: Box; empty: boolean; pos: number; end: number; item: boolean } | null>(null);
@@ -158,6 +179,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     table.set(inTable(editor));
     const range = cellRange(editor);
     axis.set(range && range.kind !== "cells" ? range : null);
+    placeTableAdders();
     const href = empty && selection.type === "text" ? linkHref(editor) : "";
     if (href !== link()) linkEditing.set(false);
     link.set(href);
@@ -356,6 +378,41 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
             <Text class="line-clamp-1 text-sm text-foreground">
               {preview()?.text || " "}
             </Text>
+          </View>
+        </Overlay>
+      </If>
+      {/* Below a table the bar adds a row, beside it the + adds a column (allsum's and Notion's). */}
+      <If when={table() && tableBox() !== null && axis() === null && dragging() === null}>
+        <Overlay anchor={at({ ...(tableBox() as { box: Box }).box, height: 0, y: (tableBox() as { box: Box }).box.y + (tableBox() as { box: Box }).box.height })} placement="bottom" align="start" offset={4}>
+          <View
+            testID="table-add-row"
+            accessibilityLabel="Add a row"
+            role="button"
+            onPress={() => {
+              const t = tableBox();
+              if (t) editor.run(chain([setTextSelection(t.lastCell), named("addRowAfter")]));
+              editor.focus();
+            }}
+            style={{ width: (tableBox() as { box: Box }).box.width }}
+            class="h-5 items-center justify-center rounded-md bg-muted/50 hover:bg-accent"
+          >
+            <Icon name="plus" size={12} tint={token("muted-foreground")} />
+          </View>
+        </Overlay>
+        <Overlay anchor={at({ ...(tableBox() as { box: Box }).box, width: 0, x: (tableBox() as { box: Box }).box.x + (tableBox() as { box: Box }).box.width })} placement="right" align="center" offset={4}>
+          <View
+            testID="table-add-column"
+            accessibilityLabel="Add a column"
+            role="button"
+            onPress={() => {
+              const t = tableBox();
+              if (t) editor.run(chain([setTextSelection(t.lastColumn), named("addColumnAfter")]));
+              editor.focus();
+            }}
+            style={{ height: (tableBox() as { box: Box }).box.height }}
+            class="w-5 items-center justify-center rounded-md bg-muted/50 hover:bg-accent"
+          >
+            <Icon name="plus" size={12} tint={token("muted-foreground")} />
           </View>
         </Overlay>
       </If>

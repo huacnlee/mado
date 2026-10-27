@@ -21,7 +21,7 @@ import {
   undo,
   unsetMark,
 } from "nsh/base";
-import { RichText, type Block, type CellRange, type SlashItem as RichSlashItem } from "nsh-richtext";
+import { RichText, type Block, type CellRange, type TableEdges, type SlashItem as RichSlashItem } from "nsh-richtext";
 
 // --- Names ---------------------------------------------------------------------
 
@@ -216,6 +216,11 @@ export function cellRange(editor: RichEditorSession): CellRange | null {
   const selection = editor.selection;
   if (selection.type !== "cell") return null;
   return RichText.cellRange(editor.doc, selection.anchor ?? 0, selection.head ?? 0);
+}
+
+/** The table around the selection: its edges, for adding a row or column at its end; `null` outside one. */
+export function tableEdges(editor: RichEditorSession): TableEdges | null {
+  return RichText.tableEdges(editor.doc, editor.selection.head ?? 0);
 }
 
 /** Where dropping the block at `source` at `target` puts it, or `null`. */

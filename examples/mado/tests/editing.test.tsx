@@ -362,6 +362,18 @@ test("a block's + adds a line below it with the slash menu open", async () => {
   expect(text).toBe("First\n\n/x\n\nSecond\n");
 });
 
+test("the bar under a table adds a row and the + beside it a column", async () => {
+  const app = await openMado({ files: { "add.md": "| a | b |\n| --- | --- |\n| 1 | 2 |\n" }, recent: ["add.md"] });
+  await app.press("a");
+  await app.waitFor("id:table-add-row");
+  await app.press("id:table-add-row");
+  await saveAndRead(app, "add.md", (t) => t.split("\n").length > 4);
+  await app.waitFor("id:table-add-column");
+  await app.press("id:table-add-column");
+  const text = await saveAndRead(app, "add.md", (t) => t.startsWith("| a | b |  |"));
+  expect(text).toBe("| a | b |  |\n| --- | --- | --- |\n| 1 | 2 |  |\n|  |  |  |\n");
+});
+
 test("==highlights== load as highlights and are saved back", async () => {
   const app = await openMado({ files: { "hl.md": "Some ==marked== words\n" }, recent: ["hl.md"] });
   await app.waitFor("Some marked words");

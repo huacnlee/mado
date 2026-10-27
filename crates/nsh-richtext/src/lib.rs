@@ -28,7 +28,7 @@ use nsh_core::{JsonValue, prelude::*};
 pub use crate::{
     blocks::{Block, Drop},
     slash::SlashItem,
-    tables::CellRange,
+    tables::{CellRange, TableEdges},
 };
 
 /// Queries of a rich text document, for an editor's UI.
@@ -71,6 +71,12 @@ impl RichText {
     /// whole columns, whole rows or some cells; `null` outside a table.
     pub fn cell_range(doc: JsonValue, anchor: u32, head: u32) -> Option<CellRange> {
         tables::cell_range(&doc_of(&doc)?, anchor as usize, head as usize)
+    }
+
+    /// The edges of the table around `pos`, for adding a row or column at
+    /// its end; `null` outside a table.
+    pub fn table_edges(doc: JsonValue, pos: u32) -> Option<TableEdges> {
+        tables::table_edges(&doc_of(&doc)?, pos as usize)
     }
 
     /// Reads Markdown as a document (JSON, for `createRichEditor`'s
