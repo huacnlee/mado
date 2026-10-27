@@ -1,4 +1,4 @@
-// What Mado remembers between launches, in the app's storage (`nsh`'s `Storage`).
+// What RichText Demo remembers between launches, in the app's storage (`nsh`'s `Storage`).
 import { signal } from "nsh";
 import { Storage } from "nsh";
 
@@ -21,7 +21,7 @@ export interface Settings {
 
 export const DEFAULTS: Settings = { mode: "visual", appearance: "dark", autosave: true, recent: [], folder: "", backend: "disk" };
 
-export const SETTINGS_KEY = "mado.settings";
+export const SETTINGS_KEY = "demo.settings";
 export const MAX_RECENT = 12;
 
 export const settings = signal<Settings>(DEFAULTS);

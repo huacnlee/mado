@@ -1,9 +1,9 @@
 {
-  "name": "Mado",
-  "id": "com.huacnlee.mado",
+  "name": "RichText Demo",
+  "id": "com.huacnlee.richtext-demo",
   "version": "0.2.0",
   "build": 5,
-  "icon": "assets/mado.png",
+  "icon": "assets/richtext-demo.png",
   "rust": [
     "../../crates/nsh-richtext",
     "native"

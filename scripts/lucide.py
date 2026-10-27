@@ -1,16 +1,16 @@
-"""Writes lucide.ts: the Lucide icons Mado draws, as typed data.
+"""Writes lucide.ts: the Lucide icons RichText Demo draws, as typed data.
 
 Usage: python3 -I scripts/lucide.py <icon-nodes.json> [version]
 
 `icon-nodes.json` is lucide-static's `{name: [[tag, attrs], ...]}`. Only the
-icons in ICONS are written, so the bundle carries what Mado shows.
+icons in ICONS are written, so the bundle carries what RichText Demo shows.
 """
 
 import json
 import pathlib
 import sys
 
-# The icons Mado uses, by Lucide name.
+# The icons RichText Demo uses, by Lucide name.
 ICONS = [
     "bold", "check", "chevron-down", "clock", "code", "external-link", "eye", "file-code", "file-plus", "file-text", "folder-open", "grip-vertical", "heading", "heading-1", "heading-2", "heading-3", "heading-4", "highlighter", "image", "italic", "link", "list", "list-indent-decrease", "list-indent-increase", "list-ordered", "list-todo", "minus", "pencil", "pilcrow", "plus", "redo-2", "save", "square-code", "strikethrough", "subscript", "superscript", "table", "grid-2x2-x", "table-cells-merge", "table-cells-split", "panel-top", "text-align-center", "text-align-end", "text-align-justify", "text-align-start", "text-quote", "trash-2", "underline", "undo-2", "unlink", "x", "sun", "moon", "monitor",
 ]
@@ -75,11 +75,11 @@ def main():
     lines += [
         "} satisfies Record<string, LucideElement[]>;",
         "",
-        "/** The name of an icon Mado draws. */",
+        "/** The name of an icon RichText Demo draws. */",
         "export type LucideName = keyof typeof lucide;",
         "",
     ]
-    out = pathlib.Path(__file__).resolve().parent.parent / "examples" / "mado" / "components" / "lucide.ts"
+    out = pathlib.Path(__file__).resolve().parent.parent / "examples" / "richtext-demo" / "components" / "lucide.ts"
     out.write_text("\n".join(lines))
 
 

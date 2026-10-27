@@ -1,9 +1,9 @@
-// Mado: Markdown files, edited as documents.
+// RichText Demo: Markdown files, edited as documents.
 import { View, effect, mount, signal } from "nsh";
 import { setColorScheme, windowSize } from "nsh";
 import { Window, titleBar } from "nsh/desktop";
 import { keymap, platform } from "nsh";
-import { Dialogs } from "mado/native";
+import { Dialogs } from "demo/native";
 import { ErrorNote } from "./components/ui";
 import { SourceEditor } from "./components/SourceEditor";
 import { StatusBar } from "./components/StatusBar";
@@ -21,14 +21,14 @@ function App() {
   const compact = () => windowSize().width < 760;
 
   // Settings arrive after the first frame: the appearance, the mode, and
-  // the file open when Mado was last closed.
+  // the file open when RichText Demo was last closed.
   void loadSettings().then(async (s) => {
     setColorScheme(s.appearance);
     doc.setMode(s.mode);
     if (s.recent[0]) await doc.open(s.recent[0]);
   });
 
-  effect(() => Window.setTitle(`${doc.title()}${doc.dirty() ? " — Edited" : ""} · Mado`));
+  effect(() => Window.setTitle(`${doc.title()}${doc.dirty() ? " — Edited" : ""} · RichText Demo`));
 
   const save = () => {
     void doc.save();
@@ -82,7 +82,7 @@ function App() {
       <If when={doc.mode() === "visual"}>
         <View class="border-b border-border bg-card px-3 py-1.5 backdrop-blur-xl">
           <Toolbar
-            editor={doc.mado().editor}
+            editor={doc.demo().editor}
             revision={doc.revision()}
             compact={compact()}
             panels={{
@@ -115,10 +115,10 @@ function App() {
             }
           >
             {/* One VisualEditor per session: opening a file makes a new session, and a new editor shows it. */}
-            <Each of={[doc.mado()]}>
-              {(mado) => (
+            <Each of={[doc.demo()]}>
+              {(demo) => (
                 <VisualEditor
-                  mado={mado()}
+                  demo={demo()}
                   revision={doc.revision()}
                   actions={{
                     save,

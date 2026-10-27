@@ -20,7 +20,7 @@ concurrency:
 
 env:
   # The example app the release packages.
-  APP: examples/mado
+  APP: examples/demo
 
 jobs:
   build:
@@ -59,7 +59,7 @@ jobs:
         run: |
           python - <<'PY'
           import json, os
-          version = json.load(open('examples/mado/nsh.json'))['version']
+          version = json.load(open('examples/demo/nsh.json'))['version']
           if os.environ['RELEASE_REF'].startswith('refs/tags/') and os.environ['RELEASE_TAG'] != f'v{version}':
               raise SystemExit(f'Release tag must match nsh.json: v{version}')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
@@ -98,7 +98,7 @@ jobs:
         run: |
           packaged=.nsh/release
           # The web package is a site in a folder of the app's name.
-          if [ "$RELEASE_TARGET" = web ] && [ -d .nsh/release/Mado ]; then packaged=.nsh/release/Mado; fi
+          if [ "$RELEASE_TARGET" = web ] && [ -d ".nsh/release/RichText Demo" ]; then packaged=".nsh/release/RichText Demo"; fi
           python packaging/build-release.py --target "$RELEASE_TARGET" --version "$RELEASE_VERSION" \
             --packaged "$packaged" --output dist
 
@@ -109,7 +109,7 @@ jobs:
         run: |
           extension=tar.gz
           if [ "$RUNNER_OS" = Windows ]; then extension=zip; fi
-          python packaging/check-release.py "dist/mado-$RELEASE_VERSION-$RELEASE_TARGET.$extension" --version "$RELEASE_VERSION"
+          python packaging/check-release.py "dist/richtext-demo-$RELEASE_VERSION-$RELEASE_TARGET.$extension" --version "$RELEASE_VERSION"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -149,4 +149,4 @@ jobs:
           prerelease=()
           if [[ "$RELEASE_TAG" == *-* ]]; then prerelease+=(--prerelease); fi
           gh release create "$RELEASE_TAG" --verify-tag --generate-notes \
-            --title "Mado $RELEASE_TAG" "${prerelease[@]}" dist/*
+            --title "RichText Demo $RELEASE_TAG" "${prerelease[@]}" dist/*

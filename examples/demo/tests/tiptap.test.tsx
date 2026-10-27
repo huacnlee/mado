@@ -2,7 +2,7 @@
 // starts, the keys, what is typed after, and the Markdown saved. The list of
 // what they cover is TIPTAP.md at the repository's root.
 import { expect, test } from "nsh/test";
-import { openMado, saveAndRead, typeKeys } from "./helpers";
+import { openDemo, saveAndRead, typeKeys } from "./helpers";
 
 const TABLE = "| a | b |\n| --- | --- |\n| 1 | 2 |\n";
 
@@ -43,7 +43,7 @@ const CASES: Case[] = [
 
 for (const c of CASES) {
   test(c.name, async () => {
-    const app = await openMado({ files: { "t.md": c.doc }, recent: ["t.md"] });
+    const app = await openDemo({ files: { "t.md": c.doc }, recent: ["t.md"] });
     await app.waitFor(c.at);
     await app.press(c.at);
     for (const key of c.keys) await app.keyboard.press(key);

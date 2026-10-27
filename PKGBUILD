@@ -1,5 +1,5 @@
 # Maintainer: Jason Lee <huacnlee@gmail.com>
-pkgname=mado
+pkgname=richtext-demo
 pkgver=0.2.0
 pkgrel=1
 pkgdesc='Markdown files, edited as documents'
@@ -20,18 +20,18 @@ source=()
 
 build() {
   cd "$startdir"
-  "${NSH:-nsh}" package examples/mado --target linux --out "$srcdir/out"
+  "${NSH:-nsh}" package examples/demo --target linux --out "$srcdir/out"
 }
 
 package() {
   cd "$startdir"
-  install -dm755 "$pkgdir/usr/lib/mado"
-  cp -a "$srcdir/out/Mado/." "$pkgdir/usr/lib/mado/"
+  install -dm755 "$pkgdir/usr/lib/richtext-demo"
+  cp -a "$srcdir/out/RichText Demo/." "$pkgdir/usr/lib/richtext-demo/"
   install -dm755 "$pkgdir/usr/bin"
-  printf '#!/bin/sh\nexec /usr/lib/mado/Mado "$@"\n' > "$pkgdir/usr/bin/mado"
-  chmod 755 "$pkgdir/usr/bin/mado"
-  install -Dm644 packaging/mado.desktop "$pkgdir/usr/share/applications/mado.desktop"
-  install -Dm644 examples/mado/assets/mado.png "$pkgdir/usr/share/icons/hicolor/1024x1024/apps/mado.png"
+  printf '#!/bin/sh\nexec "/usr/lib/richtext-demo/RichText Demo" "$@"\n' > "$pkgdir/usr/bin/richtext-demo"
+  chmod 755 "$pkgdir/usr/bin/richtext-demo"
+  install -Dm644 packaging/richtext-demo.desktop "$pkgdir/usr/share/applications/richtext-demo.desktop"
+  install -Dm644 examples/demo/assets/richtext-demo.png "$pkgdir/usr/share/icons/hicolor/1024x1024/apps/richtext-demo.png"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   install -Dm644 NOTICE.md "$pkgdir/usr/share/licenses/$pkgname/NOTICE.md"
 }

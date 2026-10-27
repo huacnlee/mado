@@ -6,7 +6,7 @@
 import { Overlay, Text, View, cleanup, signal, token, type YNode } from "nsh";
 import { RichEditor } from "nsh/base";
 import {
-  type MadoEditor,
+  type DemoEditor,
   type SlashItem,
   commands,
   blockAt,
@@ -55,8 +55,8 @@ const ITEM_GUTTER = 30;
 
 type Box = { x: number; y: number; width: number; height: number };
 
-export function VisualEditor(props: { mado: MadoEditor; revision: number; actions: VisualEditorActions }) {
-  const { editor, handlers } = props.mado;
+export function VisualEditor(props: { demo: DemoEditor; revision: number; actions: VisualEditorActions }) {
+  const { editor, handlers } = props.demo;
   let host: YNode | null = null;
   const origin = signal({ x: 0, y: 0 });
   const slashQuery = signal<{ text: string; from: number; to: number } | null>(null);

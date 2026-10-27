@@ -1,4 +1,4 @@
-// Everything Mado tells the rich text editor lives here. The editing itself
+// Everything RichText Demo tells the rich text editor lives here. The editing itself
 // is nsh-richtext's (`crates/nsh-richtext`): its `richTextKit` extension
 // brings the schema, Markdown, the editing commands and block moving, in
 // Rust; this module names them for the toolbar, the bubble menu and the
@@ -25,7 +25,7 @@ import { RichText, type Block, type CellRange, type TableEdges, type SlashItem a
 
 // --- Names ---------------------------------------------------------------------
 
-/** The node types Mado uses, by their Tiptap names (the starter schema's). */
+/** The node types RichText Demo uses, by their Tiptap names (the starter schema's). */
 export const NODE = {
   paragraph: "paragraph",
   heading: "heading",
@@ -45,7 +45,7 @@ export const NODE = {
   tableCell: "tableCell",
 } as const;
 
-/** The mark types Mado uses. */
+/** The mark types RichText Demo uses. */
 export const MARK = {
   bold: "bold",
   italic: "italic",
@@ -299,8 +299,8 @@ export function slashMatches(query: string): SlashItem[] {
 
 // --- The editor ---------------------------------------------------------------------
 
-/** The plugins Mado's editors run, and the app plugins it hands back to capture keys with. */
-export interface MadoEditor {
+/** The plugins RichText Demo's editors run, and the app plugins it hands back to capture keys with. */
+export interface DemoEditor {
   editor: RichEditorSession;
   /** Takes app shortcuts while the editor has focus. */
   shortcuts: RichEditorPlugin;
@@ -314,20 +314,20 @@ export function markdownOf(editor: RichEditorSession): string {
 }
 
 /** Makes an editor holding `markdown`. */
-export function createMadoEditor(markdownText: string): MadoEditor {
-  const shortcuts = new RichEditorPlugin("mado-shortcuts");
+export function createDemoEditor(markdownText: string): DemoEditor {
+  const shortcuts = new RichEditorPlugin("demo-shortcuts");
   const editor = createRichEditor({
     content: RichText.fromMarkdown(markdownText) as RichNodeJSON,
     // The app's shortcuts bind before the kit's keymap, as a higher priority runs first.
-    extensions: [defineExtension({ name: "madoKeys", priority: 1000, addProseMirrorPlugins: () => [shortcuts] }), richExtension("richTextKit")],
+    extensions: [defineExtension({ name: "demoKeys", priority: 1000, addProseMirrorPlugins: () => [shortcuts] }), richExtension("richTextKit")],
   });
-  const handlers: MadoEditor["handlers"] = { shortcut: null };
+  const handlers: DemoEditor["handlers"] = { shortcut: null };
   shortcuts.captureKeys(SHORTCUT_KEYS, (key) => handlers.shortcut?.(key));
   shortcuts.capturing = true;
   return { editor, shortcuts, handlers };
 }
 
-/** The editor's keys Mado handles itself, as `RichEditorPlugin.captureKeys` names them. */
+/** The editor's keys RichText Demo handles itself, as `RichEditorPlugin.captureKeys` names them. */
 export const SHORTCUT_KEYS = ["Mod-s", "Mod-k", "Mod-n", "Mod-o", "Mod-/"];
 /** The key of the kit's `/` suggestion (nsh-richtext's `slashMenu`), for `editor.suggestion`. */
 export const SLASH_KEY = "slash";

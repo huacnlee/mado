@@ -1,4 +1,4 @@
-//! The Mado example's own Rust: the system's open and save dialogs.
+//! The RichText Demo example's own Rust: the system's open and save dialogs.
 
 use nsh_core::prelude::*;
 
@@ -26,7 +26,7 @@ impl Dialogs {
 }
 
 /// The example's UI set.
-#[native_module("mado/native")]
+#[native_module("demo/native")]
 fn native(registry: &mut Registry) {
     registry.module::<Dialogs>();
 }

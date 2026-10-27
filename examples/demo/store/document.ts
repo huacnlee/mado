@@ -4,7 +4,7 @@
 import { batch, computed, signal } from "nsh";
 import { platform } from "nsh";
 import * as path from "path";
-import { createMadoEditor, markdownOf, type MadoEditor } from "../editor/setup";
+import { createDemoEditor, markdownOf, type DemoEditor } from "../editor/setup";
 import type { RichNodeJSON } from "nsh/base";
 import { RichText } from "nsh-richtext";
 import { countWords } from "../editor/markdown";
@@ -25,23 +25,23 @@ export function folder(): string {
 }
 
 /** Called with each new editor session, to connect its plugins to the app. */
-type Wire = (mado: MadoEditor) => void;
+type Wire = (demo: DemoEditor) => void;
 
 export function createDocumentStore() {
   let wire: Wire = () => {};
-  const mado = signal<MadoEditor>(createMadoEditor(WELCOME));
+  const demo = signal<DemoEditor>(createDemoEditor(WELCOME));
   const file = signal<string | null>(null);
-  const saved = signal(markdownOf(mado().editor));
+  const saved = signal(markdownOf(demo().editor));
   const revision = signal(0);
   const mode = signal<Mode>(settings().mode);
-  const source = signal(mode() === "source" ? markdownOf(mado().editor) : "");
+  const source = signal(mode() === "source" ? markdownOf(demo().editor) : "");
   const error = signal<string | null>(null);
   const status = signal<string | null>(null);
   const saving = signal(false);
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   let detach = () => {};
-  const attach = (next: MadoEditor) => {
+  const attach = (next: DemoEditor) => {
     detach();
     const subscription = next.editor.subscribe((r) => {
       revision.set(r);
@@ -50,17 +50,17 @@ export function createDocumentStore() {
     detach = () => next.editor.unsubscribe(subscription);
     wire(next);
   };
-  attach(mado());
+  attach(demo());
 
   /** The document's Markdown as it is now, in either mode. */
   const markdown = () => {
     revision();
-    return mode() === "source" ? source() : markdownOf(mado().editor);
+    return mode() === "source" ? source() : markdownOf(demo().editor);
   };
   const dirty = computed(() => markdown() !== saved());
   const text = computed(() => {
     revision();
-    return mode() === "source" ? source() : mado().editor.getText();
+    return mode() === "source" ? source() : demo().editor.getText();
   });
   const words = computed(() => countWords(text()));
   const characters = computed(() => text().replace(/\n/g, "").length);
@@ -70,9 +70,9 @@ export function createDocumentStore() {
   function load(text: string, at: string | null) {
     if (timer) clearTimeout(timer);
     timer = null;
-    const next = createMadoEditor(text);
+    const next = createDemoEditor(text);
     batch(() => {
-      mado.set(next);
+      demo.set(next);
       attach(next);
       file.set(at);
       revision.set(next.editor.revision);
@@ -110,7 +110,7 @@ export function createDocumentStore() {
 
   /** Writes the document to its file, or to `target` (save as). */
   async function save(target?: string): Promise<boolean> {
-    const session = mado();
+    const session = demo();
     const text = markdown();
     let to = target ?? file();
     const files = filesBackend();
@@ -119,7 +119,7 @@ export function createDocumentStore() {
       to ??= await freeName(files, folder());
       await files.mkdir(path.dirname(to));
       await files.write(to, text);
-      if (mado() !== session) return true;
+      if (demo() !== session) return true;
       const savedTo = to;
       batch(() => {
         saved.set(text);
@@ -130,7 +130,7 @@ export function createDocumentStore() {
       rememberRecent(to);
       return true;
     } catch (e) {
-      if (mado() === session) error.set(describeError(e, `Could not save ${displayPath(to ?? folder())}`));
+      if (demo() === session) error.set(describeError(e, `Could not save ${displayPath(to ?? folder())}`));
       return false;
     } finally {
       saving.set(false);
@@ -189,7 +189,7 @@ export function createDocumentStore() {
   /** Switches between the rich editor and the Markdown source, carrying the text across. */
   function setMode(next: Mode) {
     if (next === mode()) return;
-    const editor = mado().editor;
+    const editor = demo().editor;
     if (next === "source") {
       const text = markdownOf(editor);
       batch(() => {
@@ -216,7 +216,7 @@ export function createDocumentStore() {
   }
 
   return {
-    mado,
+    demo,
     file,
     title,
     mode,
@@ -239,7 +239,7 @@ export function createDocumentStore() {
     load,
     onEditor(fn: Wire) {
       wire = fn;
-      fn(mado());
+      fn(demo());
     },
   };
 }

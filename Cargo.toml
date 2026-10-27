@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/nsh-richtext", "examples/mado/native"]
+members = ["crates/nsh-richtext", "examples/demo/native"]
 exclude = [".nsh-src"]
 
 [workspace.package]

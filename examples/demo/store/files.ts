@@ -1,4 +1,4 @@
-// Markdown files on disk. Mado reads and writes them with `fs/promises`
+// Markdown files on disk. RichText Demo reads and writes them with `fs/promises`
 // under the home directory (nsh.json grants `${homeDir}`); the same
 // interface over the app's storage lets tests run without a disk.
 import * as fs from "fs/promises";
@@ -6,7 +6,7 @@ import * as path from "path";
 import * as os from "os";
 import { Storage, platform } from "nsh";
 
-/** What Mado does with files. */
+/** What RichText Demo does with files. */
 export interface Files {
   read(file: string): Promise<string>;
   write(file: string, text: string): Promise<void>;
@@ -43,7 +43,7 @@ export const diskFiles: Files = {
   },
 };
 
-const PREFIX = "mado.file:";
+const PREFIX = "demo.file:";
 
 /** Files kept in the app's storage, keyed by path: a disk of its own for tests and sandboxes without file access. */
 export const storageFiles: Files = {
@@ -77,9 +77,9 @@ function homeDirectory(): string {
   return platform.os === "web" ? "/" : os.homedir() || "/";
 }
 
-/** Where new documents go: `~/Documents/Mado` (virtual on the web). */
+/** Where new documents go: `~/Documents/RichText Demo` (virtual on the web). */
 export function defaultFolder(): string {
-  return path.join(homeDirectory(), "Documents", "Mado");
+  return path.join(homeDirectory(), "Documents", "RichText Demo");
 }
 
 /** `~/…` expanded; a relative path is taken in the default folder. */
@@ -115,6 +115,6 @@ export async function freeName(files: Files, dir: string, base = "Untitled"): Pr
 export function describeError(error: unknown, action: string): string {
   const e = error as { code?: string; message?: string };
   if (e?.code === "ENOENT") return `${action}: the file does not exist.`;
-  if (e?.code === "EACCES" || e?.code === "EPERM") return `${action}: Mado may not access this location.`;
+  if (e?.code === "EACCES" || e?.code === "EPERM") return `${action}: RichText Demo may not access this location.`;
   return `${action}: ${e?.message ?? String(error)}`;
 }

@@ -1,4 +1,4 @@
-// Opening a file: a path to type (or paste), the Markdown files of Mado's
+// Opening a file: a path to type (or paste), the Markdown files of RichText Demo's
 // folder, and the recent files.
 import { Scroll, Text, View, resource, signal, token } from "nsh";
 import { Button } from "nsh/base";

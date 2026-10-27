@@ -1,16 +1,16 @@
-// What Mado's tests share: an app whose files live in its storage (no disk),
+// What RichText Demo's tests share: an app whose files live in its storage (no disk),
 // in a desktop window, and the ways a user selects and types.
 import { type App, open } from "nsh/test";
 
-export const FOLDER = "/mado-test";
+export const FOLDER = "/demo-test";
 
 /** The storage key a file is kept under (`store/files.ts` `storageFiles`). */
-export const fileKey = (name: string) => `mado.file:${FOLDER}/${name}`;
+export const fileKey = (name: string) => `demo.file:${FOLDER}/${name}`;
 
-/** Opens Mado with `files` (name → Markdown) in its test folder; `recent` names the file it reopens. */
-export async function openMado(options: { files?: Record<string, string>; recent?: string[]; mode?: "visual" | "source"; platform?: "macos" | "web"; folder?: string } = {}): Promise<App> {
+/** Opens RichText Demo with `files` (name → Markdown) in its test folder; `recent` names the file it reopens. */
+export async function openDemo(options: { files?: Record<string, string>; recent?: string[]; mode?: "visual" | "source"; platform?: "macos" | "web"; folder?: string } = {}): Promise<App> {
   const storage: Record<string, string> = {
-    "mado.settings": JSON.stringify({
+    "demo.settings": JSON.stringify({
       backend: "storage",
       folder: options.folder ?? FOLDER,
       recent: (options.recent ?? []).map((name) => `${FOLDER}/${name}`),

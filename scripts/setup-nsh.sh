@@ -1,5 +1,5 @@
 #!/bin/sh
-# Makes `.nsh-src`: NSH at the commit Cargo.toml pins, with Mado's patches
+# Makes `.nsh-src`: NSH at the commit Cargo.toml pins, with RichText Demo's patches
 # applied, and builds its CLI (`.nsh-src/target/release/nsh`).
 #   scripts/setup-nsh.sh            # clone, patch, build
 #   NSH_PROFILE=dev scripts/setup-nsh.sh

@@ -1,10 +1,10 @@
 // Editing: Markdown shortcuts as you type, the toolbar, the link editor,
 // the slash menu, lists, undo, and the Visual / Source switch.
 import { expect, test } from "nsh/test";
-import { holdKeys, holdsDrag, newFile, openMado, saveAndRead, selectBlock, typeInEditor, typeKeys } from "./helpers";
+import { holdKeys, holdsDrag, newFile, openDemo, saveAndRead, selectBlock, typeInEditor, typeKeys } from "./helpers";
 
 test("# and a space make a heading, - a list, [ ] a task", async () => {
-  const app = await openMado();
+  const app = await openDemo();
   await newFile(app);
   await typeInEditor(app, "# Plan");
   await app.keyboard.press("enter");
@@ -22,7 +22,7 @@ test("# and a space make a heading, - a list, [ ] a task", async () => {
 });
 
 test("**text** and the toolbar's Bold make bold text", async () => {
-  const app = await openMado();
+  const app = await openDemo();
   await newFile(app);
   await typeInEditor(app, "a **strong** word");
   await app.waitFor("text:/a strong word/");
@@ -38,30 +38,30 @@ test("**text** and the toolbar's Bold make bold text", async () => {
 });
 
 test("Mod-k edits the selection's link, and Remove link takes it off", async () => {
-  const app = await openMado();
+  const app = await openDemo();
   await newFile(app);
-  await typeInEditor(app, "Mado");
-  await app.waitFor("1 word");
-  await selectBlock(app, "Mado");
+  await typeInEditor(app, "RichText Demo");
+  await app.waitFor("2 words");
+  await selectBlock(app, "RichText Demo");
   await app.keyboard.press("mod+k");
   await app.waitFor("id:link-panel");
   await app.type("id:link-href", "github.com/huacnlee/nsh-richtext");
   await app.press("id:link-apply");
   let text = await saveAndRead(app, "Untitled.md", (t) => t.includes("]("));
-  expect(text).toContain("[Mado](https://github.com/huacnlee/nsh-richtext)");
+  expect(text).toContain("[RichText Demo](https://github.com/huacnlee/nsh-richtext)");
   // The caret inside the link (a link does not reach past its last character).
-  await app.press("Mado");
+  await app.press("RichText Demo");
   await app.keyboard.press("home");
   await app.keyboard.press("right");
   await app.keyboard.press("mod+k");
   await app.waitFor("id:link-remove");
   await app.press("id:link-remove");
   text = await saveAndRead(app, "Untitled.md", (t) => !t.includes("]("));
-  expect(text.trim()).toBe("Mado");
+  expect(text.trim()).toBe("RichText Demo");
 });
 
 test("/ opens the block menu, and Enter turns the line into the chosen block", async () => {
-  const app = await openMado();
+  const app = await openDemo();
   await newFile(app);
   await typeInEditor(app, "/head");
   await app.waitFor("id:slash-menu");
@@ -75,7 +75,7 @@ test("/ opens the block menu, and Enter turns the line into the chosen block", a
 });
 
 test("Escape closes the block menu and keeps the text", async () => {
-  const app = await openMado();
+  const app = await openDemo();
   await newFile(app);
   await typeInEditor(app, "/");
   await app.waitFor("id:slash-menu");
@@ -84,7 +84,7 @@ test("Escape closes the block menu and keeps the text", async () => {
 });
 
 test("Tab and Shift-Tab indent and outdent list items", async () => {
-  const app = await openMado();
+  const app = await openDemo();
   await newFile(app);
   await typeInEditor(app, "- first");
   await app.keyboard.press("enter");
@@ -96,7 +96,7 @@ test("Tab and Shift-Tab indent and outdent list items", async () => {
 });
 
 test("Mod-z undoes typing and Shift-Mod-z redoes it", async () => {
-  const app = await openMado({ files: { "u.md": "Original\n" }, recent: ["u.md"] });
+  const app = await openDemo({ files: { "u.md": "Original\n" }, recent: ["u.md"] });
   await selectBlock(app, "Original");
   await typeKeys(app, "changed");
   await app.waitFor("changed");
@@ -107,7 +107,7 @@ test("Mod-z undoes typing and Shift-Mod-z redoes it", async () => {
 });
 
 test("switching to Source and back keeps the document", async () => {
-  const app = await openMado({ files: { "m.md": "# Title\n\nSome *text* here.\n" }, recent: ["m.md"] });
+  const app = await openDemo({ files: { "m.md": "# Title\n\nSome *text* here.\n" }, recent: ["m.md"] });
   await app.waitFor("Title");
   await app.press("role:button[Source]");
   await app.waitFor("id:source-editor");
@@ -119,7 +119,7 @@ test("switching to Source and back keeps the document", async () => {
 });
 
 test("edits in Source show in Visual", async () => {
-  const app = await openMado({ files: { "s.md": "Plain\n" }, recent: ["s.md"], mode: "source" });
+  const app = await openDemo({ files: { "s.md": "Plain\n" }, recent: ["s.md"], mode: "source" });
   await app.waitFor("id:source-editor");
   await app.press("Plain");
   await app.keyboard.press("end");
@@ -129,7 +129,7 @@ test("edits in Source show in Visual", async () => {
 });
 
 test("the status bar counts words and characters", async () => {
-  const app = await openMado({ files: { "c.md": "one two three\n" }, recent: ["c.md"] });
+  const app = await openDemo({ files: { "c.md": "one two three\n" }, recent: ["c.md"] });
   await app.waitFor("3 words");
   expect(app.shows("13 characters")).toBe(true);
   expect(app.shows("1 min read")).toBe(true);
@@ -140,7 +140,7 @@ test("the status bar counts words and characters", async () => {
 });
 
 test("selecting text shows the bubble menu and clearing it hides the menu", async () => {
-  const app = await openMado({ files: { "selection.md": "Select these words\n" }, recent: ["selection.md"] });
+  const app = await openDemo({ files: { "selection.md": "Select these words\n" }, recent: ["selection.md"] });
   await app.press("Select these words");
   await app.keyboard.press("end");
   await app.keyboard.press("shift+home");
@@ -150,7 +150,7 @@ test("selecting text shows the bubble menu and clearing it hides the menu", asyn
 });
 
 test("dragging a block moves it below another block and undo restores it", async () => {
-  const app = await openMado({ files: { "drag.md": "First block\n\nSecond block\n\nThird block\n" }, recent: ["drag.md"] });
+  const app = await openDemo({ files: { "drag.md": "First block\n\nSecond block\n\nThird block\n" }, recent: ["drag.md"] });
   await app.press("First block");
   await app.waitFor("id:block-grip");
   await app.drag("id:block-grip", { x: 100, y: 48 });
@@ -163,7 +163,7 @@ test("dragging a block moves it below another block and undo restores it", async
 });
 
 test("while a block is dragged its preview shows until the drop", async () => {
-  const app = await openMado({ files: { "held.md": "First block\n\nSecond block\n\nThird block\n" }, recent: ["held.md"] });
+  const app = await openDemo({ files: { "held.md": "First block\n\nSecond block\n\nThird block\n" }, recent: ["held.md"] });
   await app.press("First block");
   await app.waitFor("id:block-grip");
   if (!(await holdsDrag(app))) return;
@@ -177,7 +177,7 @@ test("while a block is dragged its preview shows until the drop", async () => {
 });
 
 test("pasting an image file inserts it as an image", async () => {
-  const app = await openMado({ files: { "img.md": "Before\n" }, recent: ["img.md"] });
+  const app = await openDemo({ files: { "img.md": "Before\n" }, recent: ["img.md"] });
   await app.press("Before");
   await app.keyboard.press("end");
   await app.paste("label:Document", { uris: ["file:///pics/cat.png"] });
@@ -186,7 +186,7 @@ test("pasting an image file inserts it as an image", async () => {
 });
 
 test("dropping an image file on the editor inserts it", async () => {
-  const app = await openMado({ files: { "drop.md": "Before\n" }, recent: ["drop.md"] });
+  const app = await openDemo({ files: { "drop.md": "Before\n" }, recent: ["drop.md"] });
   await app.press("Before");
   await app.keyboard.press("end");
   await app.dropFiles("label:Document", ["file:///pics/dog.jpg"]);
@@ -195,7 +195,7 @@ test("dropping an image file on the editor inserts it", async () => {
 });
 
 test("an image file dropped on a line goes there, not to the caret", async () => {
-  const app = await openMado({ files: { "at.md": "First\n\nSecond\n" }, recent: ["at.md"] });
+  const app = await openDemo({ files: { "at.md": "First\n\nSecond\n" }, recent: ["at.md"] });
   await app.press("First");
   await app.dropFiles("Second", ["file:///pics/cat.jpg"]);
   const text = await saveAndRead(app, "at.md", (t) => t.includes("cat.jpg"));
@@ -203,16 +203,16 @@ test("an image file dropped on a line goes there, not to the caret", async () =>
 });
 
 test("pasting a screenshot's bytes inserts it inline", async () => {
-  const app = await openMado({ files: { "shot.md": "Before\n" }, recent: ["shot.md"] });
+  const app = await openDemo({ files: { "shot.md": "Before\n" }, recent: ["shot.md"] });
   await app.press("Before");
   await app.keyboard.press("end");
-  await app.paste("label:Document", { files: ["examples/mado/assets/mado.png"] });
+  await app.paste("label:Document", { files: ["examples/demo/assets/richtext-demo.png"] });
   const text = await saveAndRead(app, "shot.md", (t) => t.includes("data:image/png"));
   expect(text).toContain("](data:image/png;base64,iVBOR");
 });
 
 test("Alt arrows move blocks up and down", async () => {
-  const app = await openMado({ files: { "move.md": "First\n\nSecond\n" }, recent: ["move.md"] });
+  const app = await openDemo({ files: { "move.md": "First\n\nSecond\n" }, recent: ["move.md"] });
   await app.press("Second");
   await app.keyboard.press("alt+up");
   await saveAndRead(app, "move.md", (t) => t.startsWith("Second"));
@@ -221,7 +221,7 @@ test("Alt arrows move blocks up and down", async () => {
 });
 
 test("the toolbar sets headings and quotes", async () => {
-  const app = await openMado({ files: { "blocks.md": "Section\n" }, recent: ["blocks.md"] });
+  const app = await openDemo({ files: { "blocks.md": "Section\n" }, recent: ["blocks.md"] });
   await app.press("Section");
   await app.press("label:Text style");
   await app.press("Heading 2");
@@ -233,7 +233,7 @@ test("the toolbar sets headings and quotes", async () => {
 });
 
 test("the image panel inserts an image with its description", async () => {
-  const app = await openMado();
+  const app = await openDemo();
   await newFile(app);
   await app.press("id:toolbar >> label:Image");
   await app.waitFor("id:image-panel");
@@ -245,7 +245,7 @@ test("the image panel inserts an image with its description", async () => {
 });
 
 test("list items have a drag handle and move among their siblings", async () => {
-  const app = await openMado({ files: { "list.md": "- One\n- Two\n\nAfter\n" }, recent: ["list.md"] });
+  const app = await openDemo({ files: { "list.md": "- One\n- Two\n\nAfter\n" }, recent: ["list.md"] });
   await app.press("One");
   await app.waitFor("id:block-grip");
   await app.keyboard.press("alt+down");
@@ -254,7 +254,7 @@ test("list items have a drag handle and move among their siblings", async () => 
 });
 
 test("a top-level block moves past a whole list", async () => {
-  const app = await openMado({ files: { "list.md": "Before\n\n- One\n- Two\n" }, recent: ["list.md"] });
+  const app = await openDemo({ files: { "list.md": "Before\n\n- One\n- Two\n" }, recent: ["list.md"] });
   await app.press("Before");
   await app.keyboard.press("alt+down");
   const text = await saveAndRead(app, "list.md", (t) => t.trim().endsWith("Before"));
@@ -262,7 +262,7 @@ test("a top-level block moves past a whole list", async () => {
 });
 
 test("app shortcuts work while the rich editor has focus", async () => {
-  const app = await openMado({ files: { "keys.md": "Focused editor\n" }, recent: ["keys.md"] });
+  const app = await openDemo({ files: { "keys.md": "Focused editor\n" }, recent: ["keys.md"] });
   await app.press("Focused editor");
   await app.keyboard.press("mod+/");
   await app.waitFor("id:source-editor");
@@ -273,7 +273,7 @@ test("app shortcuts work while the rich editor has focus", async () => {
 });
 
 test("hovering a list item shows its handle, and dragging it moves the item alone", async () => {
-  const app = await openMado({ files: { "drag.md": "Intro\n\n- One\n- Two\n- Three\n" }, recent: ["drag.md"] });
+  const app = await openDemo({ files: { "drag.md": "Intro\n\n- One\n- Two\n- Three\n" }, recent: ["drag.md"] });
   await app.waitFor("Three");
   await app.hover("Two");
   await app.waitFor("id:block-grip");
@@ -284,7 +284,7 @@ test("hovering a list item shows its handle, and dragging it moves the item alon
 });
 
 test("a task dragged above a paragraph leaves its list for a list of its own", async () => {
-  const app = await openMado({ files: { "out.md": "Intro\n\nMiddle\n\n- [ ] Write\n- [x] Second task\n\nAfter\n" }, recent: ["out.md"] });
+  const app = await openDemo({ files: { "out.md": "Intro\n\nMiddle\n\n- [ ] Write\n- [x] Second task\n\nAfter\n" }, recent: ["out.md"] });
   await app.press("Second task");
   await app.waitFor("id:block-grip");
   await app.drag("id:block-grip", { x: 100, y: -80 });
@@ -293,7 +293,7 @@ test("a task dragged above a paragraph leaves its list for a list of its own", a
 });
 
 test("a list item dropped just above its list stays in it", async () => {
-  const app = await openMado({ files: { "join.md": "Intro\n\nMiddle\n\n- [ ] Write\n- [x] Second task\n\nAfter\n" }, recent: ["join.md"] });
+  const app = await openDemo({ files: { "join.md": "Intro\n\nMiddle\n\n- [ ] Write\n- [x] Second task\n\nAfter\n" }, recent: ["join.md"] });
   await app.press("Second task");
   await app.waitFor("id:block-grip");
   await app.drag("id:block-grip", { x: 100, y: -60 });
@@ -302,7 +302,7 @@ test("a list item dropped just above its list stays in it", async () => {
 });
 
 test("the only item dragged out of its list takes the list along", async () => {
-  const app = await openMado({ files: { "only.md": "Intro\n\n- one\n\nAfter\n\nEnd\n" }, recent: ["only.md"] });
+  const app = await openDemo({ files: { "only.md": "Intro\n\n- one\n\nAfter\n\nEnd\n" }, recent: ["only.md"] });
   await app.press("one");
   await app.waitFor("id:block-grip");
   await app.drag("id:block-grip", { x: 100, y: 50 });
@@ -311,7 +311,7 @@ test("the only item dragged out of its list takes the list along", async () => {
 });
 
 test("nested list markers change by level", async () => {
-  const app = await openMado({
+  const app = await openDemo({
     files: { "nest.md": "1. one\n   1. two\n      1. three\n         1. four\n\n- a\n  - b\n    - c\n      - d\n" },
     recent: ["nest.md"],
   });
@@ -323,7 +323,7 @@ test("nested list markers change by level", async () => {
 });
 
 test("the caret in a link shows its bar: Edit changes the address, Remove unlinks", async () => {
-  const app = await openMado({ files: { "lnk.md": "See [docs](https://a.example) here\n" }, recent: ["lnk.md"] });
+  const app = await openDemo({ files: { "lnk.md": "See [docs](https://a.example) here\n" }, recent: ["lnk.md"] });
   await app.press("See docs here");
   await app.keyboard.press("home");
   for (let i = 0; i < 6; i++) await app.keyboard.press("right");
@@ -344,7 +344,7 @@ test("the caret in a link shows its bar: Edit changes the address, Remove unlink
 });
 
 test("a selected column's menu moves it and inserts beside it", async () => {
-  const app = await openMado({ files: { "col.md": "| a | b |\n| --- | --- |\n| 1 | 2 |\n" }, recent: ["col.md"] });
+  const app = await openDemo({ files: { "col.md": "| a | b |\n| --- | --- |\n| 1 | 2 |\n" }, recent: ["col.md"] });
   await app.press("a");
   await app.keyboard.press("shift+down");
   await app.keyboard.press("shift+down");
@@ -359,7 +359,7 @@ test("a selected column's menu moves it and inserts beside it", async () => {
 });
 
 test("a selected column's menu aligns it, saved as the column's alignment", async () => {
-  const app = await openMado({ files: { "al.md": "| a | b |\n| --- | --- |\n| 1 | 2 |\n" }, recent: ["al.md"] });
+  const app = await openDemo({ files: { "al.md": "| a | b |\n| --- | --- |\n| 1 | 2 |\n" }, recent: ["al.md"] });
   await app.press("b");
   await app.keyboard.press("shift+down");
   await app.keyboard.press("shift+down");
@@ -370,7 +370,7 @@ test("a selected column's menu aligns it, saved as the column's alignment", asyn
 });
 
 test("a block's + adds a line below it with the slash menu open", async () => {
-  const app = await openMado({ files: { "plus.md": "First\n\nSecond\n" }, recent: ["plus.md"] });
+  const app = await openDemo({ files: { "plus.md": "First\n\nSecond\n" }, recent: ["plus.md"] });
   await app.press("First");
   await app.waitFor("id:block-plus");
   await app.press("id:block-plus");
@@ -382,7 +382,7 @@ test("a block's + adds a line below it with the slash menu open", async () => {
 });
 
 test("the bar under a table adds a row and the + beside it a column", async () => {
-  const app = await openMado({ files: { "add.md": "| a | b |\n| --- | --- |\n| 1 | 2 |\n" }, recent: ["add.md"] });
+  const app = await openDemo({ files: { "add.md": "| a | b |\n| --- | --- |\n| 1 | 2 |\n" }, recent: ["add.md"] });
   await app.press("a");
   await app.waitFor("id:table-add-row");
   await app.press("id:table-add-row");
@@ -394,7 +394,7 @@ test("the bar under a table adds a row and the + beside it a column", async () =
 });
 
 test("==highlights== load as highlights and are saved back", async () => {
-  const app = await openMado({ files: { "hl.md": "Some ==marked== words\n" }, recent: ["hl.md"] });
+  const app = await openDemo({ files: { "hl.md": "Some ==marked== words\n" }, recent: ["hl.md"] });
   await app.waitFor("Some marked words");
   await app.press("Some marked words");
   await app.keyboard.press("end");
@@ -404,7 +404,7 @@ test("==highlights== load as highlights and are saved back", async () => {
 });
 
 test("the toolbar inserts a table, the bar under it adds a row, and it saves as GFM", async () => {
-  const app = await openMado();
+  const app = await openDemo();
   await newFile(app);
   await app.press("id:toolbar >> label:Table");
   // A caret in a cell shows no bar; the bar under the table adds a row.
@@ -418,7 +418,7 @@ test("the toolbar inserts a table, the bar under it adds a row, and it saves as 
 });
 
 test("tables in a file load and round trip", async () => {
-  const app = await openMado({ files: { "t.md": "| A | B |\n| --- | --- |\n| 1 | 2 |\n" }, recent: ["t.md"] });
+  const app = await openDemo({ files: { "t.md": "| A | B |\n| --- | --- |\n| 1 | 2 |\n" }, recent: ["t.md"] });
   await app.waitFor("A");
   await app.press("2");
   await app.keyboard.press("end");
@@ -428,7 +428,7 @@ test("tables in a file load and round trip", async () => {
 });
 
 test("/table inserts a table from the block menu", async () => {
-  const app = await openMado();
+  const app = await openDemo();
   await newFile(app);
   await typeInEditor(app, "/table");
   await app.waitFor("id:slash-menu >> Table");
@@ -437,7 +437,7 @@ test("/table inserts a table from the block menu", async () => {
 });
 
 test("pressing a block's handle selects the block, and Backspace deletes it", async () => {
-  const app = await openMado({ files: { "sel.md": "First block\n\nSecond block\n" }, recent: ["sel.md"] });
+  const app = await openDemo({ files: { "sel.md": "First block\n\nSecond block\n" }, recent: ["sel.md"] });
   await app.press("Second block");
   await app.waitFor("id:block-grip");
   // A press that does not move (a drag shorter than the slop).
@@ -448,7 +448,7 @@ test("pressing a block's handle selects the block, and Backspace deletes it", as
 });
 
 test("the caret moves down across a divider and a code block, line by line", async () => {
-  const app = await openMado({ files: { "nav.md": "Above\n\n---\n\n```\ncode\n```\n\nBelow\n" }, recent: ["nav.md"] });
+  const app = await openDemo({ files: { "nav.md": "Above\n\n---\n\n```\ncode\n```\n\nBelow\n" }, recent: ["nav.md"] });
   await app.press("Above");
   await app.keyboard.press("end");
   await app.keyboard.press("down");
@@ -459,7 +459,7 @@ test("the caret moves down across a divider and a code block, line by line", asy
 });
 
 test("task lists keep their checks through a save", async () => {
-  const app = await openMado({ files: { "t.md": "- [x] done\n- [ ] todo\n" }, recent: ["t.md"] });
+  const app = await openDemo({ files: { "t.md": "- [x] done\n- [ ] todo\n" }, recent: ["t.md"] });
   await app.press("todo");
   await app.keyboard.press("end");
   await typeKeys(app, "s");
@@ -468,7 +468,7 @@ test("task lists keep their checks through a save", async () => {
 });
 
 test("typing hides the block handle until the pointer moves again", async () => {
-  const app = await openMado({ files: { "type.md": "First\n\nSecond\n" }, recent: ["type.md"] });
+  const app = await openDemo({ files: { "type.md": "First\n\nSecond\n" }, recent: ["type.md"] });
   await app.press("Second");
   await app.hover("First");
   await app.waitFor("id:block-grip");
@@ -480,7 +480,7 @@ test("typing hides the block handle until the pointer moves again", async () => 
 });
 
 test("a block command saves no trailing blank lines", async () => {
-  const app = await openMado({ files: { "end.md": "Para\n" }, recent: ["end.md"] });
+  const app = await openDemo({ files: { "end.md": "Para\n" }, recent: ["end.md"] });
   await app.press("Para");
   await app.keyboard.press("mod+alt+2");
   const text = await saveAndRead(app, "end.md", (t) => t.startsWith("## "));
@@ -488,7 +488,7 @@ test("a block command saves no trailing blank lines", async () => {
 });
 
 test("the handle carries every block a selection spans", async () => {
-  const app = await openMado({ files: { "range.md": "One\n\nTwo\n\nThree\n\nFour\n" }, recent: ["range.md"] });
+  const app = await openDemo({ files: { "range.md": "One\n\nTwo\n\nThree\n\nFour\n" }, recent: ["range.md"] });
   await app.press("One");
   await app.keyboard.press("home");
   await app.keyboard.press("shift+down");
@@ -500,7 +500,7 @@ test("the handle carries every block a selection spans", async () => {
 });
 
 test("Shift-arrows grow a selection across blocks by whole blocks", async () => {
-  const app = await openMado({ files: { "sel.md": "One\n\nTwo\n\nThree\n\nFour\n" }, recent: ["sel.md"] });
+  const app = await openDemo({ files: { "sel.md": "One\n\nTwo\n\nThree\n\nFour\n" }, recent: ["sel.md"] });
   await app.press("One");
   await app.keyboard.press("home");
   await app.keyboard.press("shift+down");
@@ -511,7 +511,7 @@ test("Shift-arrows grow a selection across blocks by whole blocks", async () => 
 });
 
 test("an empty line's floating menu turns it into a heading", async () => {
-  const app = await openMado({ files: { "float.md": "Intro\n" }, recent: ["float.md"] });
+  const app = await openDemo({ files: { "float.md": "Intro\n" }, recent: ["float.md"] });
   await app.press("Intro");
   await app.keyboard.press("end");
   await app.keyboard.press("enter");
@@ -523,7 +523,7 @@ test("an empty line's floating menu turns it into a heading", async () => {
 });
 
 test("a new document takes the focus and offers its blocks on the empty line", async () => {
-  const app = await openMado();
+  const app = await openDemo();
   await newFile(app);
   await app.waitFor("id:floating-menu");
   await app.press("id:floating-menu >> label:Bullet list");
@@ -535,7 +535,7 @@ test("a new document takes the focus and offers its blocks on the empty line", a
 test("Mod-click opens a link while editing", async () => {
   // The link fills the line, so a press at its middle is on it.
   const label = "a link long enough to run across the whole line of the editor, from its left edge past its middle to the right";
-  const app = await openMado({ files: { "link.md": `[${label}](https://example.com)\n` }, recent: ["link.md"] });
+  const app = await openDemo({ files: { "link.md": `[${label}](https://example.com)\n` }, recent: ["link.md"] });
   await app.waitFor(label);
   await app.press(label);
   expect(app.openedUrls()).toEqual([]);
@@ -550,7 +550,7 @@ test("Mod-click opens a link while editing", async () => {
 });
 
 test("a Mod-drag across blocks selects them whole", async () => {
-  const app = await openMado({ files: { "md.md": "First line\n\nSecond line\n\nThird\n" }, recent: ["md.md"] });
+  const app = await openDemo({ files: { "md.md": "First line\n\nSecond line\n\nThird\n" }, recent: ["md.md"] });
   await app.waitFor("Third");
   // Where the target holds keys (headless, Linux).
   if (!(await holdKeys(app, "mod"))) return;

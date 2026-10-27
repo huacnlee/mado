@@ -1,11 +1,11 @@
 [Desktop Entry]
 Type=Application
-Name=Mado
+Name=RichText Demo
 Comment=Edit Markdown files as documents
-Exec=mado %F
-Icon=mado
+Exec=richtext-demo %F
+Icon=richtext-demo
 Terminal=false
 Categories=Office;TextEditor;
 MimeType=text/markdown;text/x-markdown;
 Keywords=Markdown;Editor;Notes;Writing;
-StartupWMClass=com.huacnlee.mado
+StartupWMClass=com.huacnlee.richtext-demo

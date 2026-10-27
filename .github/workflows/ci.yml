@@ -36,9 +36,9 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-nsh
-      - run: nsh check examples/mado
-      - run: nsh build examples/mado --release
-      - run: nsh test examples/mado
+      - run: nsh check examples/demo
+      - run: nsh build examples/demo --release
+      - run: nsh test examples/demo
       - run: nsh check examples/minimal
       - run: nsh test examples/minimal
 

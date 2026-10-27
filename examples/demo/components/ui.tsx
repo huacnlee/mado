@@ -1,4 +1,4 @@
-// Mado's controls in Solid Glass's look: smoky panes with a hairline edge and
+// RichText Demo's controls in Solid Glass's look: smoky panes with a hairline edge and
 // a soft shadow, one clear-glass state for hovered, chosen and open, and the
 // brand emerald for what the user acts on. The look is all classes over the
 // theme's tokens (`theme.json`), so light and dark follow the appearance.

@@ -80,5 +80,5 @@ export const lucide = {
   "x": [{"tag": "path", "d": "M18 6 6 18"}, {"tag": "path", "d": "m6 6 12 12"}],
 } satisfies Record<string, LucideElement[]>;
 
-/** The name of an icon Mado draws. */
+/** The name of an icon RichText Demo draws. */
 export type LucideName = keyof typeof lucide;

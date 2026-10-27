@@ -2,10 +2,10 @@
 """Turn `nsh package` output into a release archive using the install scripts' contract.
 
 The archive of each target holds:
-  macOS    Mado.app
-  Linux    mado/ (the packaged app: the `Mado` executable and its `nsh/` resources),
-           packaging/mado.desktop, assets/mado.png (from examples/mado)
-  Windows  Mado.exe and its `nsh\\` resources, at the top
+  macOS    RichText Demo.app
+  Linux    richtext-demo/ (the packaged app: the `RichText Demo` executable and its `nsh/` resources),
+           packaging/richtext-demo.desktop, assets/richtext-demo.png (from examples/demo)
+  Windows  RichText Demo.exe and its `nsh\\` resources, at the top
   web      the static site, at the top
 plus LICENSE and README.md, and a `<archive>.sha256` sidecar next to it.
 """
@@ -26,7 +26,7 @@ TARGETS = {
     "x86_64-pc-windows-msvc": "windows",
     "web": "web",
 }
-NAME = "Mado"
+NAME = "RichText Demo"
 
 
 def copy_tree(source, destination):
@@ -37,8 +37,8 @@ def package(root, packaged, output, version, target):
     platform = TARGETS[target]
     output.mkdir(parents=True, exist_ok=True)
     extension = "zip" if platform == "windows" else "tar.gz"
-    archive = output / f"mado-{version}-{target}.{extension}"
-    with tempfile.TemporaryDirectory(prefix="mado-package-") as temporary:
+    archive = output / f"richtext-demo-{version}-{target}.{extension}"
+    with tempfile.TemporaryDirectory(prefix="richtext-demo-package-") as temporary:
         stage = Path(temporary)
         if platform == "macos":
             app = packaged / f"{NAME}.app"
@@ -49,10 +49,10 @@ def package(root, packaged, output, version, target):
             app = packaged / NAME
             if not (app / NAME).is_file():
                 raise SystemExit(f"nsh package output is missing {app / NAME}")
-            copy_tree(app, stage / "mado")
-            (stage / "mado" / NAME).chmod(0o755)
+            copy_tree(app, stage / "richtext-demo")
+            (stage / "richtext-demo" / NAME).chmod(0o755)
             # The archive keeps the install scripts' layout: assets/ at its root.
-            for source, name in (("packaging/mado.desktop", "packaging/mado.desktop"), ("examples/mado/assets/mado.png", "assets/mado.png")):
+            for source, name in (("packaging/richtext-demo.desktop", "packaging/richtext-demo.desktop"), ("examples/demo/assets/richtext-demo.png", "assets/richtext-demo.png")):
                 destination = stage / name
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(root / source, destination)

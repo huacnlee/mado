@@ -1,10 +1,10 @@
 # Notices
 
-Mado includes material from the following projects.
+RichText Demo includes material from the following projects.
 
 ## Solid Glass
 
-Mado's theme (`theme.json`) carries the design tokens of [Solid Glass](https://github.com/deeplethe/solid-glass)
+RichText Demo's theme (`theme.json`) carries the design tokens of [Solid Glass](https://github.com/deeplethe/solid-glass)
 (`src/solid-glass.css`), and its controls follow Solid Glass's look. Solid Glass is released under the MIT License:
 
 > MIT License

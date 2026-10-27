@@ -5,16 +5,16 @@ A complete rich text editing kit for [Native Shell (NSH)](https://github.com/lon
 named commands and the queries an editor's toolbar, bubble menu, slash menu and block handles need. It renders with
 each platform's own UI on macOS, Windows, Linux and the web.
 
-**Mado** (`examples/mado`), a Markdown editor, is its example: a whole app built on the kit. `examples/minimal` is
+**RichText Demo** (`examples/demo`), a Markdown editor, is its example: a whole app built on the kit. `examples/minimal` is
 the smallest one: the kit's extension, a toolbar of its commands and the document as Markdown.
 
-> **A demo, not a maintained product.** nsh-richtext and Mado show what NSH's `RichEditor` can carry: the goal is a
+> **A demo, not a maintained product.** nsh-richtext and RichText Demo show what NSH's `RichEditor` can carry: the goal is a
 > kernel good enough, as ProseMirror is, for third parties and NSH apps to build editors like Allsum's on it. This
 > repository is not maintained as a Tiptap counterpart; whoever wants one is welcome to build on it.
 
 ```
 crates/nsh-richtext/   the kit (Rust): extensions, commands, block moving, slash items, text counts
-examples/mado/         Mado: a TSX app on the kit, with a small crate of its own (native/, the open dialog)
+examples/demo/         RichText Demo: a TSX app on the kit, with a small crate of its own (native/, the open dialog)
 examples/minimal/      the smallest app on the kit
 ```
 
@@ -53,9 +53,9 @@ drag and drop, `slashItems(query)`, `countWords(text)`, `readingMinutes(words)`.
 
 From Rust, the extensions are plain `nsh_base` `Extension`s: `nsh_richtext::kit::rich_text_kit()`, `kit::blocks()`, ...
 
-## Mado
+## RichText Demo
 
-Mado opens Markdown files and edits them as documents. Headings, lists, tasks, quotes, code and links take their
+RichText Demo opens Markdown files and edits them as documents. Headings, lists, tasks, quotes, code and links take their
 shape as you type, and the file stays plain Markdown that every other tool reads.
 
 ### Features
@@ -93,7 +93,7 @@ and ARM64), Windows (x86_64) and a web build.
 curl -fsSL https://raw.githubusercontent.com/huacnlee/nsh-richtext/main/install.sh | sh
 ```
 
-It installs `Mado.app` into `~/Applications` on macOS, and `mado` into `~/.local` on Linux (with its desktop entry
+It installs `RichText Demo.app` into `~/Applications` on macOS, and `richtext-demo` into `~/.local` on Linux (with its desktop entry
 and icon), for the current user. `--version 0.2.0` installs a given release, `--dir <path>` another location. Every
 download is checked against the release's `SHA256SUMS`. Linux uses GTK 4.14+ and WebKitGTK 6.0.
 
@@ -103,7 +103,7 @@ download is checked against the release's `SHA256SUMS`. Linux uses GTK 4.14+ and
 irm https://raw.githubusercontent.com/huacnlee/nsh-richtext/main/install.ps1 | iex
 ```
 
-It installs into `%LOCALAPPDATA%\Programs\Mado` and adds Mado to the Start menu.
+It installs into `%LOCALAPPDATA%\Programs\RichText Demo` and adds RichText Demo to the Start menu.
 
 **Arch Linux**
 
@@ -113,31 +113,31 @@ From a clone, with `nsh` on `PATH`: `makepkg -si`.
 
 NSH's `RichEditor` is newer than its last release, so the kit builds against NSH at the commit in `NSH_REV`, with
 the fixes in [packaging/patches](packaging/patches/README.md). `scripts/setup-nsh.sh` checks it out into `.nsh-src`,
-applies them and builds its `nsh`; `.cargo/config.toml` points every nsh crate there, so the kit, Mado's crate and
+applies them and builds its `nsh`; `.cargo/config.toml` points every nsh crate there, so the kit, RichText Demo's crate and
 the hosts `nsh` builds for them share one NSH.
 
 ```sh
 scripts/setup-nsh.sh                      # .nsh-src and .nsh-src/target/release/nsh
 export PATH="$PWD/.nsh-src/target/release:$PATH"
 cargo test --workspace                    # the kit's tests
-nsh run examples/mado                     # Mado in a window, reloading as you save
-nsh check examples/mado                   # type check
-nsh test examples/mado                    # Mado's tests, headless
-nsh package examples/mado --target macos  # Mado.app in examples/mado/.nsh/out (also linux, windows, web)
+nsh run examples/demo                     # RichText Demo in a window, reloading as you save
+nsh check examples/demo                   # type check
+nsh test examples/demo                    # RichText Demo's tests, headless
+nsh package examples/demo --target macos  # RichText Demo.app in examples/demo/.nsh/out (also linux, windows, web)
 ```
 
-In Mado, `App.tsx` is the window, `components/` its parts, `editor/setup.ts` what it asks of the kit (command names,
+In RichText Demo, `App.tsx` is the window, `components/` its parts, `editor/setup.ts` what it asks of the kit (command names,
 classes), `store/` the document, the files and the settings, and `native/` its own Rust (the open dialog). New
-documents go to `~/Documents/Mado`. `python3 scripts/test-install.py` tests the installer, and
+documents go to `~/Documents/RichText Demo`. `python3 scripts/test-install.py` tests the installer, and
 `pwsh scripts/test-install.ps1` the Windows one.
 
 ## Release
 
-Tag a version that matches `examples/mado/nsh.json`'s `version` (`v0.2.0`) and push the tag. The release workflow builds NSH at
-the commit `NSH_REV` names, packages Mado with `nsh package` for each target, writes the archives
-`mado-<version>-<target>.tar.gz` (`.zip` on Windows) and their `SHA256SUMS`, and publishes them as a GitHub release.
+Tag a version that matches `examples/demo/nsh.json`'s `version` (`v0.2.0`) and push the tag. The release workflow builds NSH at
+the commit `NSH_REV` names, packages RichText Demo with `nsh package` for each target, writes the archives
+`richtext-demo-<version>-<target>.tar.gz` (`.zip` on Windows) and their `SHA256SUMS`, and publishes them as a GitHub release.
 
 ## License
 
-MIT. Mado's theme comes from [Solid Glass](https://github.com/deeplethe/solid-glass) (MIT) and its icons from
+MIT. RichText Demo's theme comes from [Solid Glass](https://github.com/deeplethe/solid-glass) (MIT) and its icons from
 [Lucide](https://lucide.dev) (ISC): see [NOTICE.md](NOTICE.md).
