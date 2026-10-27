@@ -350,6 +350,17 @@ test("a selected column's menu moves it and inserts beside it", async () => {
   expect(text).toBe("| b |  |\n| --- | --- |\n| 2 |  |\n");
 });
 
+test("a selected column's menu aligns it, saved as the column's alignment", async () => {
+  const app = await openMado({ files: { "al.md": "| a | b |\n| --- | --- |\n| 1 | 2 |\n" }, recent: ["al.md"] });
+  await app.press("b");
+  await app.keyboard.press("shift+down");
+  await app.keyboard.press("shift+down");
+  await app.waitFor("id:column-menu");
+  await app.press("id:axis-align-center");
+  const text = await saveAndRead(app, "al.md", (t) => t.includes(":---:"));
+  expect(text).toBe("| a | b |\n| --- | :---: |\n| 1 | 2 |\n");
+});
+
 test("a block's + adds a line below it with the slash menu open", async () => {
   const app = await openMado({ files: { "plus.md": "First\n\nSecond\n" }, recent: ["plus.md"] });
   await app.press("First");

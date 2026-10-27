@@ -1,4 +1,5 @@
-// The menu a column's or row's grip opens (allsum's): insert on either side, clear, move, delete.
+// The menu a column's or row's grip opens (allsum's): insert on either side, clear, align (a column, saved
+// as its `:---:`), move, delete.
 import { Text, token, View } from "nsh";
 import { Button, type RichCommand, type RichEditorSession } from "nsh/base";
 import type { CellRange } from "nsh-richtext";
@@ -18,6 +19,9 @@ function items(range: CellRange): Item[] {
         { id: "insert-left", label: "Insert column left", icon: "column-insert-left", run: () => commands.table("addColumnBefore") },
         { id: "insert-right", label: "Insert column right", icon: "column-insert-right", run: () => commands.table("addColumnAfter") },
         { id: "clear", label: "Clear contents", icon: "eraser", run: () => commands.clearCells() },
+        { id: "align-left", label: "Align left", icon: "text-align-start", run: () => commands.align("left"), first: true },
+        { id: "align-center", label: "Align center", icon: "text-align-center", run: () => commands.align("center") },
+        { id: "align-right", label: "Align right", icon: "text-align-end", run: () => commands.align("right") },
         { id: "move-left", label: "Move left", icon: "arrow-left", run: () => move(range.from - 1), disabled: !one || range.from === 0, first: true },
         { id: "move-right", label: "Move right", icon: "arrow-right", run: () => move(range.from + 1), disabled: !one || range.from === last },
         { id: "delete", label: "Delete column", icon: "trash-2", run: () => commands.table("deleteColumn"), danger: true, first: true },
