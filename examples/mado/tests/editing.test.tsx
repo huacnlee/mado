@@ -185,6 +185,15 @@ test("pasting an image file inserts it as an image", async () => {
   expect(text).toContain("![cat.png](/pics/cat.png)");
 });
 
+test("dropping an image file on the editor inserts it", async () => {
+  const app = await openMado({ files: { "drop.md": "Before\n" }, recent: ["drop.md"] });
+  await app.press("Before");
+  await app.keyboard.press("end");
+  await app.dropFiles("label:Document", ["file:///pics/dog.jpg"]);
+  const text = await saveAndRead(app, "drop.md", (t) => t.includes("dog.jpg"));
+  expect(text).toContain("![dog.jpg](/pics/dog.jpg)");
+});
+
 test("pasting a screenshot's bytes inserts it inline", async () => {
   const app = await openMado({ files: { "shot.md": "Before\n" }, recent: ["shot.md"] });
   await app.press("Before");

@@ -261,6 +261,14 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     editor.focus();
   };
 
+  /** Local image files (`file:` URLs, pasted or dropped) become image blocks at the selection, as Tiptap's file handler does. */
+  const insertImageFiles = (uris: string[]) => {
+    for (const uri of uris) {
+      const file = decodeURIComponent(uri.replace(/^file:\/\//, ""));
+      if (/\.(png|jpe?g|gif|webp|svg)$/i.test(file)) editor.run(commands.image(file, path.basename(file)));
+    }
+  };
+
   return (
     <View
       ref={(node: YNode) => (host = node)}
@@ -271,6 +279,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
         placeHandle(hovered() ?? editor.selection.head ?? 0);
       }}
       onHoverMove={(e) => hover(e.pagePosition.x, e.pagePosition.y)}
+      onFileDrop={(e) => insertImageFiles(e.uris)}
     >
       <RichEditor
         editor={editor}
@@ -285,10 +294,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
         onBlur={() => focused.set(false)}
         onPasteFiles={(paste) => {
           // Tiptap's file handler: pasted images become image blocks. Local files by their path, a screenshot's bytes inline.
-          for (const uri of paste.uris) {
-            const file = decodeURIComponent(uri.replace(/^file:\/\//, ""));
-            if (/\.(png|jpe?g|gif|webp|svg)$/i.test(file)) editor.run(commands.image(file, path.basename(file)));
-          }
+          insertImageFiles(paste.uris);
           for (const file of paste.files) {
             if (file.mime.startsWith("image/")) editor.run(commands.image(`data:${file.mime};base64,${Buffer.from(file.data).toString("base64")}`, file.name));
           }
