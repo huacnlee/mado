@@ -1,9 +1,9 @@
 #!/bin/sh
-# Install the published Mado app for the current user. No sudo required.
+# Install the published RichText Demo app for the current user. No sudo required.
 set -eu
 
-version="${MADO_VERSION:-latest}"
-destination="${MADO_INSTALL_DIR:-}"
+version="${RICHTEXT_DEMO_VERSION:-latest}"
+destination="${RICHTEXT_DEMO_INSTALL_DIR:-}"
 usage() {
   printf '%s\n' 'Usage: install.sh [--version VERSION] [--dir DIRECTORY]' \
     'Defaults: latest release; ~/Applications on macOS, ~/.local on Linux.'
@@ -18,7 +18,7 @@ while [ "$#" -gt 0 ]; do
     *) usage >&2; exit 2 ;;
   esac
 done
-die() { printf 'Mado: %s\n' "$*" >&2; exit 1; }
+die() { printf 'RichText Demo: %s\n' "$*" >&2; exit 1; }
 for tool in curl tar awk; do command -v "$tool" >/dev/null || die "Required command missing: $tool"; done
 case "$(uname -s)" in
   Darwin) platform=macos; suffix=apple-darwin; destination="${destination:-$HOME/Applications}" ;;
@@ -31,18 +31,18 @@ case "$(uname -m)" in
   *) die 'Unsupported CPU architecture (requires x86_64 or arm64).' ;;
 esac
 download() { curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location "$@"; }
-repo=https://github.com/huacnlee/mado
+repo=https://github.com/huacnlee/nsh-richtext
 if [ "$version" = latest ]; then
   release_url="$(download --output /dev/null --write-out '%{url_effective}' "$repo/releases/latest")"
   version="${release_url##*/}"
 fi
 version="${version#v}"
 awk -v version="$version" 'BEGIN {exit !(version ~ /^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$/)}' || die 'Version must be a release version such as 0.1.0 or v0.1.0.'
-asset="mado-$version-$arch-$suffix.tar.gz"
+asset="richtext-demo-$version-$arch-$suffix.tar.gz"
 base="$repo/releases/download/v$version"
-work="$(mktemp -d "${TMPDIR:-/tmp}/mado-install.XXXXXXXX")"
+work="$(mktemp -d "${TMPDIR:-/tmp}/richtext-demo-install.XXXXXXXX")"
 trap 'rm -rf "$work"' 0
-printf 'Downloading Mado %s for %s %s…\n' "$version" "$platform" "$arch"
+printf 'Downloading RichText Demo %s for %s %s…\n' "$version" "$platform" "$arch"
 download "$base/$asset" --output "$work/$asset"
 download "$base/SHA256SUMS" --output "$work/SHA256SUMS"
 expected="$(awk -v name="$asset" '$2 == name || $2 == "*" name { print $1 }' "$work/SHA256SUMS")"
@@ -64,7 +64,7 @@ tar -xzf "$work/$asset" -C "$work/unpacked"
 
 # Replaces `$2` with the directory `$1` as a unit, keeping the previous one if the move fails.
 replace_dir() {
-  staging="$(mktemp -d "$(dirname "$2")/.mado-install.XXXXXXXX")"
+  staging="$(mktemp -d "$(dirname "$2")/.richtext-demo-install.XXXXXXXX")"
   trap 'rm -rf "$work" "${staging:-}"' 0
   cp -R "$1" "$staging/new"
   previous="$staging/previous"
@@ -77,28 +77,28 @@ replace_dir() {
 }
 
 if [ "$platform" = macos ]; then
-  app="$work/unpacked/Mado.app"
-  [ -x "$app/Contents/MacOS/Mado" ] && [ -f "$app/Contents/Info.plist" ] || die 'Release archive is missing Mado.app.'
+  app="$work/unpacked/RichText Demo.app"
+  [ -x "$app/Contents/MacOS/RichText Demo" ] && [ -f "$app/Contents/Info.plist" ] || die 'Release archive is missing RichText Demo.app.'
   mkdir -p "$destination"
-  replace_dir "$app" "$destination/Mado.app"
-  printf 'Installed %s/Mado.app\nOpen it from Finder.\n' "$destination"
+  replace_dir "$app" "$destination/RichText Demo.app"
+  printf 'Installed %s/RichText Demo.app\nOpen it from Finder.\n' "$destination"
 else
   source_dir="$work/unpacked"
-  for file in mado/Mado packaging/mado.desktop assets/mado.png; do
+  for file in "richtext-demo/RichText Demo" packaging/richtext-demo.desktop assets/richtext-demo.png; do
     [ -f "$source_dir/$file" ] || die "Release archive is missing $file."
   done
   mkdir -p "$destination/bin" "$destination/lib" "$destination/share/applications" "$destination/share/icons/hicolor/1024x1024/apps"
-  replace_dir "$source_dir/mado" "$destination/lib/mado"
-  chmod 755 "$destination/lib/mado/Mado"
+  replace_dir "$source_dir/richtext-demo" "$destination/lib/richtext-demo"
+  chmod 755 "$destination/lib/richtext-demo/RichText Demo"
   # A launcher on PATH: the app finds its resources next to its executable.
-  launcher="$(mktemp "$destination/bin/.mado.XXXXXXXX")"
-  printf '#!/bin/sh\nexec "%s/lib/mado/Mado" "$@"\n' "$destination" > "$launcher"
+  launcher="$(mktemp "$destination/bin/.richtext-demo.XXXXXXXX")"
+  printf '#!/bin/sh\nexec "%s/lib/richtext-demo/RichText Demo" "$@"\n' "$destination" > "$launcher"
   chmod 755 "$launcher"
-  mv -f "$launcher" "$destination/bin/mado"
-  sed "s|^Exec=mado|Exec=$destination/bin/mado|" "$source_dir/packaging/mado.desktop" > "$destination/share/applications/mado.desktop"
-  chmod 644 "$destination/share/applications/mado.desktop"
-  install -m644 "$source_dir/assets/mado.png" "$destination/share/icons/hicolor/1024x1024/apps/mado.png"
+  mv -f "$launcher" "$destination/bin/richtext-demo"
+  sed "s|^Exec=richtext-demo|Exec=$destination/bin/richtext-demo|" "$source_dir/packaging/richtext-demo.desktop" > "$destination/share/applications/richtext-demo.desktop"
+  chmod 644 "$destination/share/applications/richtext-demo.desktop"
+  install -m644 "$source_dir/assets/richtext-demo.png" "$destination/share/icons/hicolor/1024x1024/apps/richtext-demo.png"
   if command -v update-desktop-database >/dev/null; then update-desktop-database "$destination/share/applications" >/dev/null 2>&1 || true; fi
-  printf 'Installed %s/bin/mado\nAdd %s/bin to PATH, then run mado.\n' "$destination" "$destination"
-  printf '%s\n' 'Mado on Linux uses GTK 4.14+ and WebKitGTK 6.0.'
+  printf 'Installed %s/bin/richtext-demo\nAdd %s/bin to PATH, then run richtext-demo.\n' "$destination" "$destination"
+  printf '%s\n' 'RichText Demo on Linux uses GTK 4.14+ and WebKitGTK 6.0.'
 fi

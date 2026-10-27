@@ -1,0 +1,30 @@
+# Build against the patched NSH checkout in `.nsh-src` (made by
+# `scripts/setup-nsh.sh`): NSH at the commit `NSH_REV` names, with
+# packaging/patches/*.patch applied. Every Cargo command under this
+# directory takes it, the workspaces `nsh` generates in `.nsh/rust` too, so
+# the app's crates and its hosts share one NSH.
+[patch.crates-io]
+nsh-base = { path = ".nsh-src/crates/nsh-base" }
+nsh-bundler = { path = ".nsh-src/crates/nsh-bundler" }
+nsh-cli = { path = ".nsh-src/crates/nsh-cli" }
+nsh-core = { path = ".nsh-src/crates/nsh-core" }
+nsh-dev = { path = ".nsh-src/crates/nsh-dev" }
+nsh-engine = { path = ".nsh-src/crates/nsh-engine" }
+nsh-ios-app = { path = ".nsh-src/crates/nsh-ios-app" }
+nsh-ios-host = { path = ".nsh-src/crates/nsh-ios-host" }
+nsh-js = { path = ".nsh-src/crates/nsh-js" }
+nsh-linux-app = { path = ".nsh-src/crates/nsh-linux-app" }
+nsh-linux-host = { path = ".nsh-src/crates/nsh-linux-host" }
+nsh-macos-app = { path = ".nsh-src/crates/nsh-macos-app" }
+nsh-macos-host = { path = ".nsh-src/crates/nsh-macos-host" }
+nsh-macros = { path = ".nsh-src/crates/nsh-macros" }
+nsh-package = { path = ".nsh-src/crates/nsh-package" }
+nsh-platform-android = { path = ".nsh-src/crates/nsh-platform-android" }
+nsh-platform-ios = { path = ".nsh-src/crates/nsh-platform-ios" }
+nsh-platform-linux = { path = ".nsh-src/crates/nsh-platform-linux" }
+nsh-platform-macos = { path = ".nsh-src/crates/nsh-platform-macos" }
+nsh-platform-web = { path = ".nsh-src/crates/nsh-platform-web" }
+nsh-platform-windows = { path = ".nsh-src/crates/nsh-platform-windows" }
+nsh-testing = { path = ".nsh-src/crates/nsh-testing" }
+nsh-windows-app = { path = ".nsh-src/crates/nsh-windows-app" }
+nsh-windows-host = { path = ".nsh-src/crates/nsh-windows-host" }

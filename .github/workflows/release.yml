@@ -9,14 +9,6 @@ on:
         description: Rebuild only the Web archive (for repairing a release build).
         type: boolean
         default: false
-      runtime_run:
-        description: Optional verified build run whose native runtimes can be reused.
-        type: string
-        default: ''
-      web_runtime_run:
-        description: Optional separate build run for the verified Web runtime.
-        type: string
-        default: ''
 
 permissions:
   contents: read
@@ -27,8 +19,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # The longbridge/nsh commit Mado's releases are packaged with (RichEditor).
-  NSH_REF: 71fa71099cde1dfa2c48ef1e0d97a028b9698df9
+  # The example app the release packages.
+  APP: examples/demo
 
 jobs:
   build:
@@ -38,13 +30,13 @@ jobs:
       matrix:
         include: >-
           ${{ fromJSON(inputs.web_only &&
-          '[{"os":"ubuntu-24.04","target":"web","nsh":"web","runner":"none"}]' ||
-          '[{"os":"macos-15","target":"aarch64-apple-darwin","nsh":"macos","runner":"nsh-macos-app"},
-            {"os":"macos-15-intel","target":"x86_64-apple-darwin","nsh":"macos","runner":"nsh-macos-app"},
-            {"os":"ubuntu-24.04","target":"x86_64-unknown-linux-gnu","nsh":"linux","runner":"nsh-linux-app"},
-            {"os":"ubuntu-24.04-arm","target":"aarch64-unknown-linux-gnu","nsh":"linux","runner":"nsh-linux-app"},
-            {"os":"windows-2022","target":"x86_64-pc-windows-msvc","nsh":"windows","runner":"nsh-windows-app"},
-            {"os":"ubuntu-24.04","target":"web","nsh":"web","runner":"none"}]') }}
+          '[{"os":"ubuntu-24.04","target":"web","nsh":"web"}]' ||
+          '[{"os":"macos-15","target":"aarch64-apple-darwin","nsh":"macos"},
+            {"os":"macos-15-intel","target":"x86_64-apple-darwin","nsh":"macos"},
+            {"os":"ubuntu-24.04","target":"x86_64-unknown-linux-gnu","nsh":"linux"},
+            {"os":"ubuntu-24.04-arm","target":"aarch64-unknown-linux-gnu","nsh":"linux"},
+            {"os":"windows-2022","target":"x86_64-pc-windows-msvc","nsh":"windows"},
+            {"os":"ubuntu-24.04","target":"web","nsh":"web"}]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     defaults:
@@ -67,7 +59,7 @@ jobs:
         run: |
           python - <<'PY'
           import json, os
-          version = json.load(open('nsh.json'))['version']
+          version = json.load(open('examples/demo/nsh.json'))['version']
           if os.environ['RELEASE_REF'].startswith('refs/tags/') and os.environ['RELEASE_TAG'] != f'v{version}':
               raise SystemExit(f'Release tag must match nsh.json: v{version}')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
@@ -85,35 +77,19 @@ jobs:
 
       - uses: ./.github/actions/setup-nsh
         with:
-          ref: ${{ env.NSH_REF }}
-          runner: ${{ inputs.runtime_run != '' && 'none' || matrix.runner }}
-          web: ${{ matrix.nsh == 'web' && inputs.runtime_run == '' }}
-
-      - name: Prepare a verified runtime from an earlier build
-        if: inputs.runtime_run != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          SOURCE_RUN: ${{ matrix.nsh == 'web' && inputs.web_runtime_run != '' && inputs.web_runtime_run || inputs.runtime_run }}
-          RELEASE_TARGET: ${{ matrix.target }}
-          NSH_PLATFORM: ${{ matrix.nsh }}
-        run: |
-          gh run download "$SOURCE_RUN" --name "release-$RELEASE_TARGET" --dir "$RUNNER_TEMP/verified-runtime"
-          python packaging/reuse-runtime.py --input "$RUNNER_TEMP/verified-runtime" \
-            --output "$RUNNER_TEMP/mado-runtime" --platform "$NSH_PLATFORM" \
-            --repo "$GH_REPO" --run "$SOURCE_RUN" --nsh-ref "$NSH_REF"
-          echo "NSH_RUNTIME=$RUNNER_TEMP/mado-runtime" >> "$GITHUB_ENV"
+          web: ${{ matrix.nsh == 'web' }}
 
       - name: Type check and test
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
-          nsh check .
-          nsh test .
+          cargo test --workspace
+          nsh check "$APP"
+          nsh test "$APP"
 
       - name: Package with nsh
         env:
           NSH_TARGET: ${{ matrix.nsh }}
-        run: nsh package . --target "$NSH_TARGET" --out .nsh/release
+        run: nsh package "$APP" --target "$NSH_TARGET" --out .nsh/release
 
       - name: Make the release archive
         env:
@@ -122,7 +98,7 @@ jobs:
         run: |
           packaged=.nsh/release
           # The web package is a site in a folder of the app's name.
-          if [ "$RELEASE_TARGET" = web ] && [ -d .nsh/release/Mado ]; then packaged=.nsh/release/Mado; fi
+          if [ "$RELEASE_TARGET" = web ] && [ -d ".nsh/release/RichText Demo" ]; then packaged=".nsh/release/RichText Demo"; fi
           python packaging/build-release.py --target "$RELEASE_TARGET" --version "$RELEASE_VERSION" \
             --packaged "$packaged" --output dist
 
@@ -133,7 +109,7 @@ jobs:
         run: |
           extension=tar.gz
           if [ "$RUNNER_OS" = Windows ]; then extension=zip; fi
-          python packaging/check-release.py "dist/mado-$RELEASE_VERSION-$RELEASE_TARGET.$extension" --version "$RELEASE_VERSION"
+          python packaging/check-release.py "dist/richtext-demo-$RELEASE_VERSION-$RELEASE_TARGET.$extension" --version "$RELEASE_VERSION"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -173,4 +149,4 @@ jobs:
           prerelease=()
           if [[ "$RELEASE_TAG" == *-* ]]; then prerelease+=(--prerelease); fi
           gh release create "$RELEASE_TAG" --verify-tag --generate-notes \
-            --title "Mado $RELEASE_TAG" "${prerelease[@]}" dist/*
+            --title "RichText Demo $RELEASE_TAG" "${prerelease[@]}" dist/*

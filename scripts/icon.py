@@ -1,4 +1,4 @@
-"""Writes assets/mado.png: Mado's 1024 x 1024 icon (a window of four panes), with no dependencies.
+"""Writes assets/richtext-demo.png: RichText Demo's 1024 x 1024 icon (a window of four panes), with no dependencies.
 
 Usage: python3 -I scripts/icon.py
 """
@@ -43,7 +43,7 @@ def main():
 
     png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", SIZE, SIZE, 8, 6, 0, 0, 0))
     png += chunk(b"IDAT", zlib.compress(rows, 9)) + chunk(b"IEND", b"")
-    out = pathlib.Path(__file__).resolve().parent.parent / "assets" / "mado.png"
+    out = pathlib.Path(__file__).resolve().parent.parent / "assets" / "richtext-demo.png"
     out.write_bytes(png)
     print(out)
 

@@ -1,37 +1,32 @@
 name: Set up NSH
 description: >-
-  Builds the nsh command line and this machine's release runner from a pinned
-  longbridge/nsh commit and puts nsh on PATH. Mado is a TSX app: nsh packages
-  its bytecode next to the prebuilt runner.
+  Checks out longbridge/nsh at the commit NSH_REV names into .nsh-src, applies
+  packaging/patches, builds the nsh command line and puts it on PATH.
+  `.cargo/config.toml` patches every nsh crate to .nsh-src, so nsh-richtext,
+  the example's crate and the hosts nsh builds for them share that NSH.
 inputs:
-  ref:
-    description: The longbridge/nsh commit, tag or branch to build.
-    required: true
-  runner:
-    description: The runner crate to build (nsh-macos-app, nsh-linux-app, nsh-windows-app), or none.
-    default: none
   web:
-    description: Build the web runtime too.
+    description: Add the wasm32 target for the web build.
     default: 'false'
 runs:
   using: composite
   steps:
+    - name: Read the pinned NSH commit
+      id: rev
+      shell: bash
+      run: echo "rev=$(cat NSH_REV)" >> "$GITHUB_OUTPUT"
     - uses: actions/checkout@v4
       with:
         repository: longbridge/nsh
-        ref: ${{ inputs.ref }}
-        path: nsh-toolchain
+        ref: ${{ steps.rev.outputs.rev }}
+        path: .nsh-src
         persist-credentials: false
-    # Outside the app's folder, so the app's type check and tests see only Mado.
-    - name: Move the NSH checkout out of the app
-      shell: bash
-      run: mv nsh-toolchain "$RUNNER_TEMP/nsh"
-    - name: Apply the RichEditor geometry runtime fix
+    - name: Apply the NSH patches
       shell: bash
       run: |
-        # Windows checkouts may have CRLF; the patch and its source must agree.
-        git -C "$RUNNER_TEMP/nsh" -c core.autocrlf=false checkout-index --all --force
-        git -C "$RUNNER_TEMP/nsh" apply "$GITHUB_WORKSPACE/packaging/patches/nsh-rich-editor-geometry.patch"
+        # Windows checkouts may have CRLF; the patches and their sources must agree.
+        git -C .nsh-src -c core.autocrlf=false checkout-index --all --force
+        for patch in packaging/patches/*.patch; do [ -e "$patch" ] || continue; git -C .nsh-src apply "$GITHUB_WORKSPACE/$patch"; done
     - uses: dtolnay/rust-toolchain@stable
       with:
         targets: ${{ inputs.web == 'true' && 'wasm32-unknown-unknown' || '' }}
@@ -43,19 +38,15 @@ runs:
         sudo apt-get install -y clang llvm pkg-config libgtk-4-dev libwebkitgtk-6.0-dev libssl-dev
     - uses: Swatinem/rust-cache@v2
       with:
-        workspaces: ${{ runner.temp }}/nsh -> target
-        key: nsh-${{ inputs.ref }}-${{ inputs.runner }}-${{ inputs.web }}
-    - name: Build the nsh CLI and runtime
+        workspaces: |
+          .nsh-src -> target
+          . -> target
+        key: nsh-${{ steps.rev.outputs.rev }}-${{ inputs.web }}
+    - name: Build the nsh CLI
       shell: bash
-      working-directory: ${{ runner.temp }}/nsh
-      env:
-        RUNNER: ${{ inputs.runner }}
-        WEB: ${{ inputs.web }}
+      working-directory: .nsh-src
       run: |
         # Windows' rustc may overflow its stack on the `windows` crate.
-        if [ "$RUNNER_OS" = Windows ]; then export RUST_MIN_STACK=268435456; fi
-        packages=(-p nsh-cli)
-        if [ "$RUNNER" != none ]; then packages+=(-p "$RUNNER"); fi
-        cargo build --locked --release "${packages[@]}"
-        if [ "$WEB" = true ]; then cargo xtask web; fi
+        if [ "$RUNNER_OS" = Windows ]; then echo "RUST_MIN_STACK=268435456" >> "$GITHUB_ENV"; export RUST_MIN_STACK=268435456; fi
+        cargo build --locked --release -p nsh-cli
         echo "$PWD/target/release" >> "$GITHUB_PATH"

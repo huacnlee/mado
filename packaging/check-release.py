@@ -17,23 +17,23 @@ def check(archive, version):
         actual = hashlib.file_digest(stream, "sha256").hexdigest()
     if expected != [actual, archive.name]:
         raise SystemExit("Release checksum does not match its archive")
-    with tempfile.TemporaryDirectory(prefix="mado-release-check-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="richtext-demo-release-check-") as temporary:
         root = Path(temporary)
         if archive.suffix == ".zip":
             with zipfile.ZipFile(archive) as bundle:
                 bundle.extractall(root)
-            executable = root / "Mado.exe"
+            executable = root / "RichText Demo.exe"
             resources = root / "nsh"
         else:
             with tarfile.open(archive) as bundle:
                 bundle.extractall(root, filter="data")
             if "apple-darwin" in archive.name:
-                app = root / "Mado.app"
-                executable = app / "Contents/MacOS/Mado"
+                app = root / "RichText Demo.app"
+                executable = app / "Contents/MacOS/RichText Demo"
                 resources = app / "Contents/Resources/nsh"
                 with (app / "Contents/Info.plist").open("rb") as stream:
                     info = plistlib.load(stream)
-                if info.get("CFBundleIdentifier") != "com.huacnlee.mado":
+                if info.get("CFBundleIdentifier") != "com.huacnlee.richtext-demo":
                     raise SystemExit(f"Unexpected bundle identifier: {info.get('CFBundleIdentifier')}")
                 if info.get("CFBundleShortVersionString") != version:
                     raise SystemExit(f"Bundle version {info.get('CFBundleShortVersionString')} is not {version}")
@@ -44,9 +44,9 @@ def check(archive, version):
                 print(f"Verified {archive.name}")
                 return
             else:
-                executable = root / "mado/Mado"
-                resources = root / "mado/nsh"
-                for asset in ("packaging/mado.desktop", "assets/mado.png"):
+                executable = root / "richtext-demo/RichText Demo"
+                resources = root / "richtext-demo/nsh"
+                for asset in ("packaging/richtext-demo.desktop", "assets/richtext-demo.png"):
                     if not (root / asset).is_file():
                         raise SystemExit(f"Release archive is missing {asset}")
         if not executable.is_file():

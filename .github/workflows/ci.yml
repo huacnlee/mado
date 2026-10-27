@@ -13,13 +13,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # The longbridge/nsh commit Mado is built and tested with (RichEditor).
-  NSH_REF: 71fa71099cde1dfa2c48ef1e0d97a028b9698df9
-
 jobs:
-  app:
-    name: Type check and tests
+  crates:
+    name: Crates (fmt, clippy, tests)
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -27,11 +23,24 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-nsh
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
+
+  app:
+    name: Example type check and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ env.NSH_REF }}
-      - run: nsh check .
-      - run: nsh build . --release
-      - run: nsh test .
+          persist-credentials: false
+      - uses: ./.github/actions/setup-nsh
+      - run: nsh check examples/demo
+      - run: nsh build examples/demo --release
+      - run: nsh test examples/demo
+      - run: nsh check examples/minimal
+      - run: nsh test examples/minimal
 
   installers:
     name: Installers (${{ matrix.os }})
