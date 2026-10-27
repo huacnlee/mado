@@ -274,3 +274,34 @@ test("/table inserts a table from the block menu", async () => {
   await app.keyboard.press("enter");
   await app.waitFor("id:table-menu");
 });
+
+test("pressing a block's handle selects the block, and Backspace deletes it", async () => {
+  const app = await openMado({ files: { "sel.md": "First block\n\nSecond block\n" }, recent: ["sel.md"] });
+  await app.press("Second block");
+  await app.waitFor("id:block-grip");
+  // A press that does not move (a drag shorter than the slop).
+  await app.drag("id:block-grip", { x: 0, y: 1 });
+  await app.keyboard.press("backspace");
+  const text = await saveAndRead(app, "sel.md", (t) => !t.includes("Second"));
+  expect(text.trim()).toBe("First block");
+});
+
+test("the caret moves down across a divider and a code block, line by line", async () => {
+  const app = await openMado({ files: { "nav.md": "Above\n\n---\n\n```\ncode\n```\n\nBelow\n" }, recent: ["nav.md"] });
+  await app.press("Above");
+  await app.keyboard.press("end");
+  await app.keyboard.press("down");
+  await app.keyboard.press("down");
+  await typeKeys(app, "X");
+  const text = await saveAndRead(app, "nav.md", (t) => t.includes("X"));
+  expect(text).not.toMatch(/BelowX|Below\nX/);
+});
+
+test("task lists keep their checks through a save", async () => {
+  const app = await openMado({ files: { "t.md": "- [x] done\n- [ ] todo\n" }, recent: ["t.md"] });
+  await app.press("todo");
+  await app.keyboard.press("end");
+  await typeKeys(app, "s");
+  const text = await saveAndRead(app, "t.md", (t) => t.includes("todos"));
+  expect(text).toContain("- [x] done\n- [ ] todos");
+});

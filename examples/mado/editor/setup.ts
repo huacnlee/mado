@@ -207,12 +207,17 @@ export function dropTarget(editor: RichEditorSession, source: number, target: nu
 
 /** The box of the first line of the block at `from`: where its handle sits. */
 export function firstLineRect(editor: RichEditorSession, block: Block): Rect | null {
-  // The first position inside a textblock: one past each opening boundary.
-  for (let pos = block.from + 1; pos < block.to; pos++) {
+  // The first position inside a textblock: one past each opening boundary. A
+  // position between a wrapper (a quote) and its first child may map anywhere
+  // in the block, so the topmost of the first few is the first line.
+  let first: Rect | null = null;
+  for (let pos = block.from + 1, tries = 0; pos < block.to && tries < 3; pos++) {
     const box = coordsAtPos(editor, pos);
-    if (box) return box;
+    if (!box) continue;
+    tries++;
+    if (!first || box.y < first.y) first = box;
   }
-  return null;
+  return first;
 }
 
 /** The bounds of the block at `block`: its first line's top to its last line's bottom. */
@@ -339,14 +344,23 @@ for (const align of ["center", "right", "justify"] as const) {
   nodes[`${NODE.paragraph}[textAlign=${align}]`] = `${nodes[NODE.paragraph]} text-${align}`;
 }
 
+/** The document column `editorClasses.content` makes: its widest (`max-w-3xl`) and its left gutter (`pl-16`). */
+export const CONTENT = { maxWidth: 768, gutter: 64 };
+
+/** Where top-level blocks' text starts in an editor `width` wide: the column every handle sits before. */
+export function textLeft(width: number): number {
+  return Math.max(0, (width - Math.min(width, CONTENT.maxWidth)) / 2) + CONTENT.gutter;
+}
+
 /** The classes of the editor's parts and the document's nodes and marks. */
 export const editorClasses: RichEditorClasses = {
-  // `pl-12`: the gutter the block handle sits in, so it never covers the text in a narrow window.
-  content: "gap-4 pl-12 pr-1 pb-24",
+  // `pl-16`: the gutter the block handle sits in, so it never covers the text in a narrow window.
+  // Centered at a reading width inside the full-width scroll view (`CONTENT`).
+  content: "w-full max-w-3xl self-center gap-4 pl-16 pr-5 pt-4 pb-24",
   placeholder: "text-muted-foreground",
   listMarker: "text-muted-foreground",
   selectedNode: "outline outline-2 outline-ring rounded",
-  taskCheckbox: "mt-1.5 size-4 rounded border border-input",
+  taskCheckbox: "mt-1.5 size-4 rounded border border-input checked:bg-primary checked:border-primary",
   dropCursor: "bg-ring",
   selectedCell: "bg-accent",
   tableGrip: "bg-muted-foreground/40 rounded-full hover:bg-ring",

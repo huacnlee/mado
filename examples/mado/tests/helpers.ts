@@ -51,9 +51,12 @@ export async function saveAndRead(app: App, name: string, check: (text: string) 
 }
 
 /** Types `text` at the caret by key presses, keeping the selection (`type` presses the editor to focus it first). */
+/** Symbols typed with Shift on a US layout, by their unshifted key. */
+const SHIFTED: Record<string, string> = { "~": "`", "!": "1", "@": "2", "#": "3", "*": "8", "(": "9", ")": "0", _: "-", "+": "=", ">": ".", "|": "\\" };
+
 export async function typeKeys(app: App, text: string) {
   for (const c of text) {
-    const key = c === " " ? "space" : c !== c.toLowerCase() ? `shift+${c.toLowerCase()}` : c;
+    const key = c === " " ? "space" : SHIFTED[c] ? `shift+${SHIFTED[c]}` : c !== c.toLowerCase() ? `shift+${c.toLowerCase()}` : c;
     await app.keyboard.press(key);
   }
 }

@@ -23,9 +23,10 @@ import {
   slashMatches,
   NODE,
   SLASH_KEY,
+  textLeft,
   inTable,
 } from "../editor/setup";
-import { insertText } from "nsh/base";
+import { insertText, setNodeSelection } from "nsh/base";
 import { BubbleMenu } from "./BubbleMenu";
 import { Icon } from "./Icon";
 import { SlashMenu } from "./SlashMenu";
@@ -42,6 +43,8 @@ export interface VisualEditorActions {
 
 /** How far left of an item's text its handle goes: past the bullet, number or checkbox. */
 const ITEM_GUTTER = 30;
+/** How far the pointer moves on the grip before a press becomes a drag. */
+const DRAG_SLOP = 4;
 
 type Box = { x: number; y: number; width: number; height: number };
 
@@ -155,7 +158,10 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     const head = editor.selection.head ?? 0;
     const empty = !!caretBlock && caretBlock.text === "" && caretBlock.type === NODE.paragraph && head >= target.from && head < target.to;
     // Below the top level a block is a list or task item, whose marker sits left of its text.
-    handle.set({ box: line, empty, pos: target.from + 1, item: target.depth > 1 });
+    // Top-level blocks' handles share one column before the text, whatever the block's own padding (a code block, a quote).
+    const item = target.depth > 1;
+    const box = item || hostWidth === 0 ? line : { ...line, x: textLeft(hostWidth), width: 1 };
+    handle.set({ box, empty, pos: target.from + 1, item });
   };
 
   /** The pointer moved over the editor: the handle follows the block under it. */
@@ -212,19 +218,28 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   };
 
   const previewDrop = (pageX: number, pageY: number) => {
+    if (pressedAt && Math.hypot(pageX - pressedAt.x, pageY - pressedAt.y) <= DRAG_SLOP) return;
     dropLine.set(dropAt(pageX, pageY)?.line ?? null);
   };
 
+  /** Where the grip was pressed: a release near it is a press, not a drag. */
+  let pressedAt: { x: number; y: number } | null = null;
+
   const cancelDrag = () => {
+    pressedAt = null;
     dragging.set(null);
     dropLine.set(null);
   };
 
   /** Drops the dragged block at the boundary shown by the insertion line. */
   const drop = (pageX: number, pageY: number) => {
-    const destination = dropAt(pageX, pageY);
+    const source = dragging();
+    const moved = !!pressedAt && Math.hypot(pageX - pressedAt.x, pageY - pressedAt.y) > DRAG_SLOP;
+    const destination = moved ? dropAt(pageX, pageY) : null;
     cancelDrag();
     if (destination) editor.run(commands.moveBlock(destination.source, destination.target));
+    // A press without a drag selects the whole block (Tiptap's drag handle): Delete, copy and cut act on it.
+    else if (!moved && source !== null) editor.run(setNodeSelection(source - 1));
     editor.focus();
   };
 
@@ -302,7 +317,8 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
               tooltip="Drag to move, or Alt-↑ / Alt-↓"
               accessibilityLabel="Move block"
               onStartShouldSetResponder={() => true}
-              onResponderGrant={() => {
+              onResponderGrant={(e) => {
+                pressedAt = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
                 dragging.set(handle()?.pos ?? null);
                 return true;
               }}

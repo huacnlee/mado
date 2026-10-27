@@ -103,9 +103,17 @@ function App() {
           <ErrorNote message={doc.error() ?? ""} onDismiss={() => doc.error.set(null)} />
         </View>
       </If>
-      <View class="flex-1 items-center px-4 pt-4">
-        <View class="w-full max-w-3xl flex-1">
-          <If when={doc.mode() === "visual"} else={<SourceEditor value={doc.source()} onChange={doc.setSource} />}>
+      {/* The visual editor spans the window, so its scroll bar is at the window's edge; its document is centered (`editorClasses.content`). */}
+      <View class="flex-1">
+        <View class="flex-1">
+          <If
+            when={doc.mode() === "visual"}
+            else={
+              <View class="flex-1 w-full max-w-3xl self-center px-4 pt-4">
+                <SourceEditor value={doc.source()} onChange={doc.setSource} />
+              </View>
+            }
+          >
             {/* One VisualEditor per session: opening a file makes a new session, and a new editor shows it. */}
             <Each of={[doc.mado()]}>
               {(mado) => (
