@@ -302,6 +302,18 @@ test("the only item dragged out of its list takes the list along", async () => {
   expect(text).toBe("Intro\n\nAfter\n\n- one\n\nEnd\n");
 });
 
+test("nested list markers change by level", async () => {
+  const app = await openMado({
+    files: { "nest.md": "1. one\n   1. two\n      1. three\n         1. four\n\n- a\n  - b\n    - c\n      - d\n" },
+    recent: ["nest.md"],
+  });
+  await app.waitFor("four");
+  for (const marker of ["1.", "a.", "i."]) expect(app.shows(marker)).toBe(true);
+  expect(app.count("◦")).toBe(1);
+  expect(app.count("▪")).toBe(1);
+  expect(app.count("•")).toBe(2);
+});
+
 test("==highlights== load as highlights and are saved back", async () => {
   const app = await openMado({ files: { "hl.md": "Some ==marked== words\n" }, recent: ["hl.md"] });
   await app.waitFor("Some marked words");
