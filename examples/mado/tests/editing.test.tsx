@@ -350,6 +350,18 @@ test("a selected column's menu moves it and inserts beside it", async () => {
   expect(text).toBe("| b |  |\n| --- | --- |\n| 2 |  |\n");
 });
 
+test("a block's + adds a line below it with the slash menu open", async () => {
+  const app = await openMado({ files: { "plus.md": "First\n\nSecond\n" }, recent: ["plus.md"] });
+  await app.press("First");
+  await app.waitFor("id:block-plus");
+  await app.press("id:block-plus");
+  await app.waitFor("id:slash-menu");
+  await app.keyboard.press("escape");
+  await typeKeys(app, "x");
+  const text = await saveAndRead(app, "plus.md", (t) => t.includes("x"));
+  expect(text).toBe("First\n\n/x\n\nSecond\n");
+});
+
 test("==highlights== load as highlights and are saved back", async () => {
   const app = await openMado({ files: { "hl.md": "Some ==marked== words\n" }, recent: ["hl.md"] });
   await app.waitFor("Some marked words");

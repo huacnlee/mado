@@ -27,7 +27,7 @@ import {
   linkHref,
   cellRange,
 } from "../editor/setup";
-import { insertText } from "nsh/base";
+import { insertContentAt, insertText } from "nsh/base";
 import { Buffer } from "buffer";
 import * as path from "path";
 import { FloatingMenu } from "./FloatingMenu";
@@ -67,7 +67,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   const linkEditing = signal(false);
   /** Whole columns or rows selected (by a grip): their menu shows instead of the table's bar. */
   const axis = signal<CellRange | null>(null);
-  const handle = signal<{ box: Box; empty: boolean; pos: number; item: boolean } | null>(null);
+  const handle = signal<{ box: Box; empty: boolean; pos: number; end: number; item: boolean } | null>(null);
   /** The block the pointer is over, which the handle follows before the caret's. */
   const hovered = signal<number | null>(null);
   const focused = signal(false);
@@ -187,7 +187,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     // Top-level blocks' handles share one column before the text, whatever the block's own padding (a code block, a quote).
     const item = target.depth > 1;
     const box = item || hostWidth === 0 ? line : { ...line, x: origin().x + textLeft(hostWidth), width: 1 };
-    handle.set({ box, empty, pos: target.from + 1, item });
+    handle.set({ box, empty, pos: target.from + 1, end: target.to, item });
   };
 
   /** The document position at a page point's height, its x held inside the text column (the handle's gutter maps to the block beside it). */
@@ -370,14 +370,20 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
         {/* Anchored on the block's first line, centered on it, whatever the block's height. */}
         <Overlay anchor={at((handle() as { box: Box }).box)} placement="left" align="center" offset={handle()?.item ? ITEM_GUTTER : 6}>
           <View class="flex-row items-center gap-0.5">
-            <If when={handle()?.empty}>
+            <If when={handle()?.empty || !handle()?.item}>
               <View
                 testID="block-plus"
-                tooltip="Insert a block"
+                tooltip="Insert a block below"
                 accessibilityLabel="Insert a block"
                 role="button"
+                // An empty line takes the slash; any other block gets a new line after it with the slash typed (Notion's and allsum's +).
                 onPress={() => {
-                  editor.run(insertText("/"));
+                  const shown = handle();
+                  if (shown && !shown.empty) {
+                    editor.run(insertContentAt(shown.end, { type: NODE.paragraph, content: [{ type: "text", text: "/" }] }, { updateSelection: true }));
+                  } else {
+                    editor.run(insertText("/"));
+                  }
                   editor.focus();
                 }}
                 class="size-6 items-center justify-center rounded-md hover:bg-accent"
