@@ -44,7 +44,7 @@ GTK (`nsh test examples/mado --target linux`).
 | The handle hides while typing, returns on the next pointer move | Mado | editing: "typing hides the block handle…" |
 | Bubble menu on a non-empty text selection; the handle stays beside it | Mado | editing: "selecting text shows the bubble menu…" |
 | Floating menu on a focused empty line | Mado (NSH: `autoFocus` reports the focus) | editing: "an empty line's floating menu…", "a new document takes the focus…" |
-| FileHandler: a pasted or dropped image (a file, a screenshot's bytes) becomes an image block | NSH (`onPasteFiles`, `onFileDrop`), Mado | editing: "pasting an image file…", "dropping an image file…", "pasting a screenshot's bytes…" |
+| FileHandler: a pasted or dropped image (a file, a screenshot's bytes) becomes an image block, a dropped one where it was let go (`pagePosition`, Linux and headless) | NSH (`onPasteFiles`, `onFileDrop`), Mado | editing: "pasting an image file…", "dropping an image file…", "an image file dropped on a line…", "pasting a screenshot's bytes…" |
 | Mod-click opens a link while editing; a click when read-only | NSH | editing: "Mod-click opens a link while editing"; NSH unit test in `extensions/link.rs` |
 | Table grips: select, move, resize rows and columns; a selected column or row has its menu (insert either side, clear, align a column, saved as GFM `:---:`, move, delete) | NSH, kit (`cellRange`), Mado | NSH tests; gallery `rich-editor.test.tsx` |
 

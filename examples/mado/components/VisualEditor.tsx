@@ -311,8 +311,10 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     editor.focus();
   };
 
-  /** Local image files (`file:` URLs, pasted or dropped) become image blocks at the selection, as Tiptap's file handler does. */
-  const insertImageFiles = (uris: string[]) => {
+  /** Local image files (`file:` URLs, pasted or dropped) become image blocks at the selection, or where they were let go (`at`, page coordinates), as Tiptap's file handler does. */
+  const insertImageFiles = (uris: string[], at?: { x: number; y: number }) => {
+    const pos = at ? posAtCoords(editor, at.x, at.y) : null;
+    if (pos != null) editor.run(setTextSelection(pos));
     for (const uri of uris) {
       const file = decodeURIComponent(uri.replace(/^file:\/\//, ""));
       if (/\.(png|jpe?g|gif|webp|svg)$/i.test(file)) editor.run(commands.image(file, path.basename(file)));
@@ -329,7 +331,7 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
         placeHandle(hovered() ?? editor.selection.head ?? 0);
       }}
       onHoverMove={(e) => hover(e.pagePosition.x, e.pagePosition.y)}
-      onFileDrop={(e) => insertImageFiles(e.uris)}
+      onFileDrop={(e) => insertImageFiles(e.uris, e.pagePosition)}
     >
       <RichEditor
         editor={editor}
