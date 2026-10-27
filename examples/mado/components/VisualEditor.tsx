@@ -150,7 +150,11 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
 
   const subscription = editor.subscribe(() => follow());
   const offs = [
-    onEditorEvent(editor, "selectionUpdate", follow),
+    // The handle stays on the block last hovered (the pointer leaves the text to reach it) until the caret moves.
+    onEditorEvent(editor, "selectionUpdate", () => {
+      hovered.set(null);
+      follow();
+    }),
     onEditorEvent(editor, "focus", () => focused.set(true)),
     onEditorEvent(editor, "blur", () => focused.set(false)),
   ];
@@ -164,11 +168,20 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
 
   const at = (box: Box) => ({ origin: { x: origin().x + box.x, y: origin().y + box.y }, size: { width: Math.max(box.width, 1), height: box.height } });
 
+  /** The document position at a point, or, past the text's end (below the last block), at the nearest line above it. */
+  const nearestPos = (x: number, y: number) => {
+    for (let up = 0; up <= 120; up += 8) {
+      const pos = posAtCoords(editor, x, y - up);
+      if (pos !== null) return pos;
+    }
+    return null;
+  };
+
   /** Where the dragged block lands, and the line showing it: nsh-richtext decides the place. */
   const dropAt = (pageX: number, pageY: number) => {
     const source = dragging();
     if (source === null) return null;
-    const target = posAtCoords(editor, pageX - origin().x, pageY - origin().y);
+    const target = nearestPos(pageX - origin().x, pageY - origin().y);
     if (target === null) return null;
     const found = dropTarget(editor, source, target);
     if (!found) return null;
@@ -204,10 +217,6 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
       class="relative flex-1"
       onLayout={() => void measure()}
       onHoverMove={(e) => hover(e.pagePosition.x, e.pagePosition.y)}
-      onHoverOut={() => {
-        hovered.set(null);
-        follow();
-      }}
     >
       <RichEditor
         editor={editor}
