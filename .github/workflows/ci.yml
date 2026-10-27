@@ -29,6 +29,8 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
       - run: cargo check -p demo-native --target wasm32-unknown-unknown
+      - name: Check the Web browser host
+        run: cargo check --manifest-path .nsh-src/Cargo.toml -p nsh-platform-web --target wasm32-unknown-unknown --no-default-features --features browser
 
   app:
     name: Example type check and tests

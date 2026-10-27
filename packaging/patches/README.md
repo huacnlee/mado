@@ -6,5 +6,9 @@ outside the reactive runtime, coalesced typing through input rules, extensions a
 app's crate registers, key captures before the merged keymap).
 
 `scripts/setup-nsh.sh` and CI's `setup-nsh` action apply every `*.patch` here to
-`.nsh-src` before building; there are none while the pinned commit has every
-fix. Put a fix the kit needs here only until it lands upstream.
+`.nsh-src` before building. Put a fix the kit needs here only until it lands
+upstream.
+
+- `0001-fix-browser-event-payloads.patch`: updates the browser host from the
+  removed `Hover` payload to `Mouse`, including `pressedButton`, and handles
+  `FileDropAt` with its page position, matching the native JS host.
