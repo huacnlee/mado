@@ -39,6 +39,8 @@ jobs:
             {"os":"ubuntu-24.04","target":"web","nsh":"web"}]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     defaults:
       run:
         shell: bash
@@ -120,7 +122,7 @@ jobs:
 
   publish:
     name: Publish release assets
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && !inputs.web_only)
     needs: [build]
     runs-on: ubuntu-24.04
     permissions:
@@ -144,7 +146,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: v${{ needs.build.outputs.version }}
         run: |
           prerelease=()
           if [[ "$RELEASE_TAG" == *-* ]]; then prerelease+=(--prerelease); fi
