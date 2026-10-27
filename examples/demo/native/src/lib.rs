@@ -10,18 +10,27 @@ pub struct Dialogs;
 impl Dialogs {
     /// Asks for a Markdown file to open: its path, or `null` when cancelled.
     pub async fn open_markdown(directory: Option<String>) -> Option<String> {
-        // rfd's async-std backend: zbus runs on its own executor, as NSH
-        // polls this future without a Tokio runtime.
-        let mut dialog = rfd::AsyncFileDialog::new()
-            .set_title("Open")
-            .add_filter("Markdown", &["md", "markdown", "mdown", "txt"]);
-        if let Some(dir) = directory {
-            dialog = dialog.set_directory(dir);
+        #[cfg(target_arch = "wasm32")]
+        {
+            // The web UI opens its recent list instead of a native file path.
+            let _ = directory;
+            None
         }
-        dialog
-            .pick_file()
-            .await
-            .map(|f| f.path().to_string_lossy().into_owned())
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            // rfd's async-std backend: zbus runs on its own executor, as NSH
+            // polls this future without a Tokio runtime.
+            let mut dialog = rfd::AsyncFileDialog::new()
+                .set_title("Open")
+                .add_filter("Markdown", &["md", "markdown", "mdown", "txt"]);
+            if let Some(dir) = directory {
+                dialog = dialog.set_directory(dir);
+            }
+            dialog
+                .pick_file()
+                .await
+                .map(|f| f.path().to_string_lossy().into_owned())
+        }
     }
 }
 

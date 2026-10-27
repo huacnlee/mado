@@ -78,7 +78,7 @@ replace_dir() {
 
 if [ "$platform" = macos ]; then
   app="$work/unpacked/RichText Demo.app"
-  [ -x "$app/Contents/MacOS/RichText Demo" ] && [ -f "$app/Contents/Info.plist" ] || die 'Release archive is missing RichText Demo.app.'
+  [ -x "$app/Contents/MacOS/RichTextDemo" ] && [ -f "$app/Contents/Info.plist" ] || die 'Release archive is missing RichText Demo.app.'
   mkdir -p "$destination"
   replace_dir "$app" "$destination/RichText Demo.app"
   printf 'Installed %s/RichText Demo.app\nOpen it from Finder.\n' "$destination"

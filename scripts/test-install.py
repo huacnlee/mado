@@ -48,7 +48,7 @@ else:
             "assets/richtext-demo.png": b"icon",
         }
         if "apple" in target:
-            files = {"RichText Demo.app/Contents/MacOS/RichText Demo": b"#!/bin/sh\n", "RichText Demo.app/Contents/Info.plist": b"plist"}
+            files = {"RichText Demo.app/Contents/MacOS/RichTextDemo": b"#!/bin/sh\n", "RichText Demo.app/Contents/Info.plist": b"plist"}
         if unsafe:
             files["../escaped"] = b"bad"
         with tarfile.open(archive, "w:gz") as tar:
@@ -87,7 +87,7 @@ else:
     def test_build_release_archive_installs(self):
         packaged = self.root / "packaged"
         (packaged / "RichText Demo/nsh").mkdir(parents=True)
-        (packaged / "RichText Demo/RichText Demo").write_bytes(b"#!/bin/sh\necho built\n")
+        (packaged / "RichText Demo/RichTextDemo").write_bytes(b"#!/bin/sh\necho built\n")
         (packaged / "RichText Demo/nsh/bundle.nshc").write_bytes(b"bytecode")
         result = subprocess.run([
             sys.executable, str(ROOT / "packaging/build-release.py"),
@@ -104,8 +104,27 @@ else:
                 self.env["MOCK_ARCH"] = architecture
                 result = self.run_install()
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual((self.dest / "lib/richtext-demo/RichText Demo").read_bytes(), (packaged / "RichText Demo/RichText Demo").read_bytes())
+                self.assertEqual((self.dest / "lib/richtext-demo/RichText Demo").read_bytes(), (packaged / "RichText Demo/RichTextDemo").read_bytes())
                 self.assertTrue(os.access(self.dest / "bin/richtext-demo", os.X_OK))
+
+    def test_build_mac_archive_preserves_bundle(self):
+        packaged = self.root / "packaged"
+        app = packaged / "RichText Demo.app"
+        executable = app / "Contents/MacOS/RichTextDemo"
+        executable.parent.mkdir(parents=True)
+        executable.write_bytes(b"signed executable")
+        executable.chmod(0o755)
+        (app / "Contents/Info.plist").write_bytes(b"original plist")
+        result = subprocess.run([
+            sys.executable, str(ROOT / "packaging/build-release.py"),
+            "--target", "aarch64-apple-darwin", "--version", "0.1.0",
+            "--packaged", str(packaged), "--output", str(self.root),
+        ], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        archive = self.root / "richtext-demo-0.1.0-aarch64-apple-darwin.tar.gz"
+        with tarfile.open(archive) as bundle:
+            for relative in ("Contents/MacOS/RichTextDemo", "Contents/Info.plist"):
+                self.assertEqual(bundle.extractfile(f"RichText Demo.app/{relative}").read(), (app / relative).read_bytes())
 
     def test_mac_bundle_install_and_upgrade(self):
         self.env.update(MOCK_OS="Darwin", MOCK_ARCH="arm64")
@@ -113,14 +132,14 @@ else:
         for _ in range(2):
             result = self.run_install("--version", "v0.1.0")
             self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue((self.dest / "RichText Demo.app/Contents/MacOS/RichText Demo").is_file())
+        self.assertTrue((self.dest / "RichText Demo.app/Contents/MacOS/RichTextDemo").is_file())
         self.assertEqual([p.name for p in self.dest.iterdir()], ["RichText Demo.app"])
 
     def test_mac_failed_replacement_restores_previous_bundle(self):
         self.env.update(MOCK_OS="Darwin", MOCK_ARCH="arm64")
         self.mock("mv", '#!/bin/sh\ncase "$1" in */.richtext-demo-install.*/new) exit 1 ;; esac\nexec /bin/mv "$@"\n')
         self.release("aarch64-apple-darwin")
-        previous = self.dest / "RichText Demo.app/Contents/MacOS/RichText Demo"
+        previous = self.dest / "RichText Demo.app/Contents/MacOS/RichTextDemo"
         previous.parent.mkdir(parents=True)
         previous.write_text("previous version")
         result = self.run_install("--version", "0.1.0")

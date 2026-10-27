@@ -42,14 +42,16 @@ def package(root, packaged, output, version, target):
         stage = Path(temporary)
         if platform == "macos":
             app = packaged / f"{NAME}.app"
-            if not (app / "Contents/MacOS" / NAME).is_file():
+            if not (app / "Contents/MacOS/RichTextDemo").is_file():
                 raise SystemExit(f"nsh package output is missing {app}")
             copy_tree(app, stage / f"{NAME}.app")
         elif platform == "linux":
             app = packaged / NAME
-            if not (app / NAME).is_file():
-                raise SystemExit(f"nsh package output is missing {app / NAME}")
+            if not (app / "RichTextDemo").is_file():
+                raise SystemExit(f"nsh package output is missing {app / 'RichTextDemo'}")
             copy_tree(app, stage / "richtext-demo")
+            # Keep the installer's executable name; NSH strips spaces from it.
+            (stage / "richtext-demo/RichTextDemo").rename(stage / "richtext-demo" / NAME)
             (stage / "richtext-demo" / NAME).chmod(0o755)
             # The archive keeps the install scripts' layout: assets/ at its root.
             for source, name in (("packaging/richtext-demo.desktop", "packaging/richtext-demo.desktop"), ("examples/demo/assets/richtext-demo.png", "assets/richtext-demo.png")):

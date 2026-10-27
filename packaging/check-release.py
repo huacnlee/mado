@@ -29,7 +29,7 @@ def check(archive, version):
                 bundle.extractall(root, filter="data")
             if "apple-darwin" in archive.name:
                 app = root / "RichText Demo.app"
-                executable = app / "Contents/MacOS/RichText Demo"
+                executable = app / "Contents/MacOS/RichTextDemo"
                 resources = app / "Contents/Resources/nsh"
                 with (app / "Contents/Info.plist").open("rb") as stream:
                     info = plistlib.load(stream)
