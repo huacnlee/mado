@@ -15,6 +15,9 @@ pub struct SlashItem {
     pub hint: String,
     /// A Lucide icon's name.
     pub icon: String,
+    /// The Markdown that makes it as you type (`#`, `-`, `` ``` ``), empty
+    /// for none: menus show it beside the label.
+    pub markdown: String,
     /// More words it is found by.
     pub keywords: String,
     /// The command making it, `null` for one the app handles (`image`).
@@ -37,9 +40,26 @@ fn item(
         label: label.into(),
         hint: hint.into(),
         icon: icon.into(),
+        markdown: markdown(id).into(),
         keywords: keywords.into(),
         command: command.map(Into::into),
         args,
+    }
+}
+
+/// The Markdown typed at a line's start that makes block `id`.
+fn markdown(id: &str) -> &'static str {
+    match id {
+        "h1" => "#",
+        "h2" => "##",
+        "h3" => "###",
+        "bullet" => "-",
+        "ordered" => "1.",
+        "task" => "[ ]",
+        "quote" => ">",
+        "code" => "```",
+        "rule" => "---",
+        _ => "",
     }
 }
 
