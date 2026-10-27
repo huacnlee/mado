@@ -335,6 +335,21 @@ test("the caret in a link shows its bar: Edit changes the address, Remove unlink
   expect(text).toBe("See docs here\n");
 });
 
+test("a selected column's menu moves it and inserts beside it", async () => {
+  const app = await openMado({ files: { "col.md": "| a | b |\n| --- | --- |\n| 1 | 2 |\n" }, recent: ["col.md"] });
+  await app.press("a");
+  await app.keyboard.press("shift+down");
+  await app.keyboard.press("shift+down");
+  await app.waitFor("id:column-menu");
+  await app.press("id:axis-move-right");
+  let text = await saveAndRead(app, "col.md", (t) => t.startsWith("| b"));
+  expect(text).toBe("| b | a |\n| --- | --- |\n| 2 | 1 |\n");
+  await app.waitFor("id:column-menu");
+  await app.press("id:axis-clear");
+  text = await saveAndRead(app, "col.md", (t) => !t.includes("| a"));
+  expect(text).toBe("| b |  |\n| --- | --- |\n| 2 |  |\n");
+});
+
 test("==highlights== load as highlights and are saved back", async () => {
   const app = await openMado({ files: { "hl.md": "Some ==marked== words\n" }, recent: ["hl.md"] });
   await app.waitFor("Some marked words");

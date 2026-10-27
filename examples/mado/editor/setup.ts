@@ -21,7 +21,7 @@ import {
   undo,
   unsetMark,
 } from "nsh/base";
-import { RichText, type Block, type SlashItem as RichSlashItem } from "nsh-richtext";
+import { RichText, type Block, type CellRange, type SlashItem as RichSlashItem } from "nsh-richtext";
 
 // --- Names ---------------------------------------------------------------------
 
@@ -189,6 +189,17 @@ export const commands = {
   table(name: TableCommand): RichCommand {
     return named(name, null);
   },
+  /** Moves column (or row) `from` of the table at `table` to index `to`, keeping it selected. */
+  moveColumn(table: number, from: number, to: number): RichCommand {
+    return named("moveTableColumn", { table, from, to, select: true });
+  },
+  moveRow(table: number, from: number, to: number): RichCommand {
+    return named("moveTableRow", { table, from, to, select: true });
+  },
+  /** Empties the selected cells, keeping the table's shape. */
+  clearCells(): RichCommand {
+    return named("deleteSelection", null);
+  },
   /** Moves the block a handle at `source` moves to where dropping it at `target` puts it. */
   moveBlock(source: number, target: number): RichCommand {
     return named("moveBlockTo", { source, target });
@@ -198,6 +209,13 @@ export const commands = {
 /** The block a handle at `pos` moves: the innermost list or task item, else the top-level block. */
 export function blockAt(editor: RichEditorSession, pos: number): Block | null {
   return RichText.blockAt(editor.doc, pos);
+}
+
+/** Whole columns or rows a cell selection covers (a column's or row's grip selects one), or `null`. */
+export function cellRange(editor: RichEditorSession): CellRange | null {
+  const selection = editor.selection;
+  if (selection.type !== "cell") return null;
+  return RichText.cellRange(editor.doc, selection.anchor ?? 0, selection.head ?? 0);
 }
 
 /** Where dropping the block at `source` at `target` puts it, or `null`. */

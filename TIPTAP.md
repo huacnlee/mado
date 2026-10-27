@@ -46,7 +46,7 @@ GTK (`nsh test examples/mado --target linux`).
 | Floating menu on a focused empty line | Mado (NSH: `autoFocus` reports the focus) | editing: "an empty line's floating menu…", "a new document takes the focus…" |
 | FileHandler: a pasted or dropped image (a file, a screenshot's bytes) becomes an image block | NSH (`onPasteFiles`, `onFileDrop`), Mado | editing: "pasting an image file…", "dropping an image file…", "pasting a screenshot's bytes…" |
 | Mod-click opens a link while editing; a click when read-only | NSH | editing: "Mod-click opens a link while editing"; NSH unit test in `extensions/link.rs` |
-| Table grips: select, move, resize rows and columns | NSH | NSH tests; gallery `rich-editor.test.tsx` |
+| Table grips: select, move, resize rows and columns; a selected column or row has its menu (insert either side, clear, move, delete) | NSH, kit (`cellRange`), Mado | NSH tests; gallery `rich-editor.test.tsx` |
 
 ## Not covered
 

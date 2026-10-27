@@ -25,12 +25,15 @@ import {
   textRight,
   inTable,
   linkHref,
+  cellRange,
 } from "../editor/setup";
 import { insertText } from "nsh/base";
 import { Buffer } from "buffer";
 import * as path from "path";
 import { FloatingMenu } from "./FloatingMenu";
 import { LinkBar } from "./LinkBar";
+import { AxisMenu } from "./AxisMenu";
+import type { CellRange } from "nsh-richtext";
 import { BubbleMenu } from "./BubbleMenu";
 import { Icon } from "./Icon";
 import { SlashMenu } from "./SlashMenu";
@@ -62,6 +65,8 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
   /** The link the caret rests in: its bar shows under it. */
   const link = signal("");
   const linkEditing = signal(false);
+  /** Whole columns or rows selected (by a grip): their menu shows instead of the table's bar. */
+  const axis = signal<CellRange | null>(null);
   const handle = signal<{ box: Box; empty: boolean; pos: number; item: boolean } | null>(null);
   /** The block the pointer is over, which the handle follows before the caret's. */
   const hovered = signal<number | null>(null);
@@ -151,6 +156,8 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     void measure();
     bubble.set(!empty && selection.type === "text" ? selectionRect(editor) : null);
     table.set(inTable(editor));
+    const range = cellRange(editor);
+    axis.set(range && range.kind !== "cells" ? range : null);
     const href = empty && selection.type === "text" ? linkHref(editor) : "";
     if (href !== link()) linkEditing.set(false);
     link.set(href);
@@ -310,8 +317,15 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
         bubbleMenuPlacement={link() && bubble() === null ? "bottom" : "top"}
         bubbleMenu={
           <If when={slashQuery() === null && bubble() === null && link() !== "" && (focused() || linkEditing())} else={
-          <If when={slashQuery() === null && (bubble() !== null || table())}>
-            <If when={bubble() !== null} else={<TableMenu editor={editor} />}>
+          <If when={slashQuery() === null && (bubble() !== null || table() || axis() !== null)}>
+            <If
+              when={bubble() !== null}
+              else={
+                <If when={axis()} else={<TableMenu editor={editor} />}>
+                  <AxisMenu editor={editor} range={axis() as CellRange} />
+                </If>
+              }
+            >
               <BubbleMenu editor={editor} revision={props.revision} onLink={props.actions.openLink} />
             </If>
           </If>

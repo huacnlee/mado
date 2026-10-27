@@ -16,6 +16,7 @@ pub mod blocks;
 pub mod kit;
 pub mod markdown;
 pub mod slash;
+pub mod tables;
 pub mod text;
 
 use nsh_base::rich_editor::{
@@ -27,6 +28,7 @@ use nsh_core::{JsonValue, prelude::*};
 pub use crate::{
     blocks::{Block, Drop},
     slash::SlashItem,
+    tables::CellRange,
 };
 
 /// Queries of a rich text document, for an editor's UI.
@@ -63,6 +65,12 @@ impl RichText {
     /// it, or `null` where it cannot go.
     pub fn drop_target(doc: JsonValue, source: u32, target: u32) -> Option<Drop> {
         blocks::drop_target(&doc_of(&doc)?, source as usize, target as usize)
+    }
+
+    /// What the cell selection from cell `anchor` to cell `head` covers:
+    /// whole columns, whole rows or some cells; `null` outside a table.
+    pub fn cell_range(doc: JsonValue, anchor: u32, head: u32) -> Option<CellRange> {
+        tables::cell_range(&doc_of(&doc)?, anchor as usize, head as usize)
     }
 
     /// Reads Markdown as a document (JSON, for `createRichEditor`'s
