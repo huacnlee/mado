@@ -26,6 +26,7 @@ import {
   inTable,
 } from "../editor/setup";
 import { insertText } from "nsh/base";
+import { FloatingMenu } from "./FloatingMenu";
 import { BubbleMenu } from "./BubbleMenu";
 import { Icon } from "./Icon";
 import { SlashMenu } from "./SlashMenu";
@@ -146,6 +147,8 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     placeHandle(hovered() ?? head, block);
   };
 
+  let lineRetries = 0;
+
   /** Puts the handle beside the first line of the block at `pos`. */
   const placeHandle = (pos: number, caretBlock = currentBlock(editor)) => {
     if (dragging() !== null) return;
@@ -153,8 +156,14 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     const line = target ? firstLineRect(editor, target) : null;
     if (!target || !line) {
       handle.set(null);
+      // A block the transaction just made has no layout yet: read it again over the next frames.
+      if (target && lineRetries < 10) {
+        lineRetries++;
+        setTimeout(() => placeHandle(pos), 16);
+      }
       return;
     }
+    lineRetries = 0;
     const head = editor.selection.head ?? 0;
     const empty = !!caretBlock && caretBlock.text === "" && caretBlock.type === NODE.paragraph && head >= target.from && head < target.to;
     // Below the top level a block is a list or task item, whose marker sits left of its text.
@@ -199,7 +208,11 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
       hovered.set(null);
       follow();
     }),
-    onEditorEvent(editor, "focus", () => focused.set(true)),
+    onEditorEvent(editor, "focus", () => {
+      focused.set(true);
+      // A document loaded without a change has placed nothing yet.
+      follow();
+    }),
     onEditorEvent(editor, "update", () => {
       if (dragging() === null) typing.set(true);
     }),
@@ -290,6 +303,12 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
               {preview()?.text || " "}
             </Text>
           </View>
+        </Overlay>
+      </If>
+      {/* Tiptap's floating menu: an empty line of a focused editor offers the blocks it can become. */}
+      <If when={handle()?.empty === true && focused() && dragging() === null && slashQuery() === null && !table()}>
+        <Overlay anchor={at((handle() as { box: Box }).box)} placement="right" align="center" offset={4}>
+          <FloatingMenu editor={editor} />
         </Overlay>
       </If>
       {/* While a drag runs the handle stays: it holds the press (a dragged table selects, which would hide it). */}

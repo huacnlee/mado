@@ -348,3 +348,15 @@ test("Shift-arrows grow a selection across blocks by whole blocks", async () => 
   const text = await saveAndRead(app, "sel.md", (t) => t.startsWith("X"));
   expect(text).toBe("X\n\nFour\n");
 });
+
+test("an empty line's floating menu turns it into a heading", async () => {
+  const app = await openMado({ files: { "float.md": "Intro\n" }, recent: ["float.md"] });
+  await app.press("Intro");
+  await app.keyboard.press("end");
+  await app.keyboard.press("enter");
+  await app.waitFor("id:floating-menu");
+  await app.press("id:floating-menu >> label:Heading 2");
+  await typeKeys(app, "Title");
+  const text = await saveAndRead(app, "float.md", (t) => t.includes("Title"));
+  expect(text).toBe("Intro\n\n## Title\n");
+});
