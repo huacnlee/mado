@@ -24,5 +24,5 @@ Mado opens **Markdown** files and edits them as a _document_. Type Markdown as y
 const greeting = "Hello, Mado";
 \`\`\`
 
-Links read as [links](https://github.com/huacnlee/mado), and ==highlights== stand out.
+Links read as [links](https://github.com/huacnlee/nsh-richtext), and ==highlights== stand out.
 `;

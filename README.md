@@ -84,13 +84,13 @@ shape as you type, and the file stays plain Markdown that every other tool reads
 
 ### Install
 
-Releases are on [GitHub](https://github.com/huacnlee/mado/releases): macOS (Apple silicon and Intel), Linux (x86_64
+Releases are on [GitHub](https://github.com/huacnlee/nsh-richtext/releases): macOS (Apple silicon and Intel), Linux (x86_64
 and ARM64), Windows (x86_64) and a web build.
 
 **macOS / Linux**
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/huacnlee/mado/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/huacnlee/nsh-richtext/main/install.sh | sh
 ```
 
 It installs `Mado.app` into `~/Applications` on macOS, and `mado` into `~/.local` on Linux (with its desktop entry
@@ -100,7 +100,7 @@ download is checked against the release's `SHA256SUMS`. Linux uses GTK 4.14+ and
 **Windows PowerShell**
 
 ```powershell
-irm https://raw.githubusercontent.com/huacnlee/mado/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/huacnlee/nsh-richtext/main/install.ps1 | iex
 ```
 
 It installs into `%LOCALAPPDATA%\Programs\Mado` and adds Mado to the Start menu.

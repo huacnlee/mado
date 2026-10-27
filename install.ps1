@@ -14,9 +14,9 @@ $target = switch ($architecture) {
     'ARM64' { throw 'Windows releases support x86_64; on ARM64, run Mado from source with nsh.' }
     default { throw "Unsupported CPU architecture: $architecture" }
 }
-$repository = 'https://github.com/huacnlee/mado'
+$repository = 'https://github.com/huacnlee/nsh-richtext'
 if ($Version -eq 'latest') {
-    $release = Invoke-RestMethod -Uri 'https://api.github.com/repos/huacnlee/mado/releases/latest'
+    $release = Invoke-RestMethod -Uri 'https://api.github.com/repos/huacnlee/nsh-richtext/releases/latest'
     $Version = $release.tag_name
 }
 $Version = $Version -replace '^v', ''

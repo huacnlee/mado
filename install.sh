@@ -31,7 +31,7 @@ case "$(uname -m)" in
   *) die 'Unsupported CPU architecture (requires x86_64 or arm64).' ;;
 esac
 download() { curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location "$@"; }
-repo=https://github.com/huacnlee/mado
+repo=https://github.com/huacnlee/nsh-richtext
 if [ "$version" = latest ]; then
   release_url="$(download --output /dev/null --write-out '%{url_effective}' "$repo/releases/latest")"
   version="${release_url##*/}"

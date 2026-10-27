@@ -29,7 +29,7 @@ import os, pathlib, shutil, sys
 args = sys.argv[1:]
 url = next(x for x in args if x.startswith('https://'))
 if url.endswith('/latest'):
-    print('https://github.com/huacnlee/mado/releases/tag/v0.1.0', end='')
+    print('https://github.com/huacnlee/nsh-richtext/releases/tag/v0.1.0', end='')
 else:
     shutil.copyfile(pathlib.Path(os.environ['FIXTURES']) / url.rsplit('/', 1)[1], args[args.index('--output') + 1])
 ''')

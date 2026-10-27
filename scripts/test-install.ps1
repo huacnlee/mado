@@ -15,14 +15,14 @@ $installerTestState = [PSCustomObject]@{
 
 function Invoke-RestMethod {
     param([string]$Uri)
-    if ($Uri -ne 'https://api.github.com/repos/huacnlee/mado/releases/latest') { throw "Unexpected API request: $Uri" }
+    if ($Uri -ne 'https://api.github.com/repos/huacnlee/nsh-richtext/releases/latest') { throw "Unexpected API request: $Uri" }
     $installerTestState.LatestCalls++
     return @{ tag_name = 'v0.1.0' }
 }
 
 function Invoke-WebRequest {
     param([switch]$UseBasicParsing, [string]$Uri, [string]$OutFile)
-    $prefix = 'https://github.com/huacnlee/mado/releases/download/v0.1.0/'
+    $prefix = 'https://github.com/huacnlee/nsh-richtext/releases/download/v0.1.0/'
     if (-not $Uri.StartsWith($prefix)) { throw "Unexpected download: $Uri" }
     $installerTestState.DownloadCalls++
     Copy-Item -LiteralPath (Join-Path $testRoot $Uri.Substring($prefix.Length)) -Destination $OutFile

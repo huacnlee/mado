@@ -7,7 +7,7 @@ exclude = [".nsh-src"]
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-repository = "https://github.com/huacnlee/mado"
+repository = "https://github.com/huacnlee/nsh-richtext"
 
 # NSH's RichEditor is newer than its 0.3.0 release: `.cargo/config.toml`
 # patches every nsh crate to `.nsh-src`, NSH at NSH_REV (scripts/setup-nsh.sh)

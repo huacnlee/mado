@@ -45,10 +45,10 @@ test("Mod-k edits the selection's link, and Remove link takes it off", async () 
   await selectBlock(app, "Mado");
   await app.keyboard.press("mod+k");
   await app.waitFor("id:link-panel");
-  await app.type("id:link-href", "github.com/huacnlee/mado");
+  await app.type("id:link-href", "github.com/huacnlee/nsh-richtext");
   await app.press("id:link-apply");
   let text = await saveAndRead(app, "Untitled.md", (t) => t.includes("]("));
-  expect(text).toContain("[Mado](https://github.com/huacnlee/mado)");
+  expect(text).toContain("[Mado](https://github.com/huacnlee/nsh-richtext)");
   // The caret inside the link (a link does not reach past its last character).
   await app.press("Mado");
   await app.keyboard.press("home");

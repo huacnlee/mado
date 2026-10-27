@@ -4,7 +4,7 @@ pkgver=0.2.0
 pkgrel=1
 pkgdesc='Markdown files, edited as documents'
 arch=('x86_64' 'aarch64')
-url='https://github.com/huacnlee/mado'
+url='https://github.com/huacnlee/nsh-richtext'
 license=('MIT')
 depends=(
   'glibc'
