@@ -38,7 +38,7 @@ GTK (`nsh test examples/mado --target linux`).
 | Tables and other unselectable blocks drag too | NSH | GTK and headless drag probes; NSH `drag_block` |
 | A selection over several blocks drags them together | NSH | editing: "the handle carries every block a selection spans" |
 | NodeRange Mod-drag: a mouse selection with Mod held covers whole blocks | NSH | editing: "a Mod-drag across blocks selects them whole"; NSH unit test |
-| Drag preview beside the pointer while the drag runs | Mado | editing: "while a block is dragged its preview shows until the drop" (`app.dragAndHold`, headless) |
+| Drag preview beside the pointer while the drag runs | Mado | editing: "while a block is dragged its preview shows until the drop" (`app.dragAndHold`, headless); the drop line (`id:rich-editor-drop-cursor`) is asserted there too |
 | Auto-scroll at the editor's edges while dragging | NSH | NSH (`follow_drag_edge`) |
 | The handle hides while typing, returns on the next pointer move | Mado | editing: "typing hides the block handle…" |
 | Bubble menu on a non-empty text selection; the handle stays beside it | Mado | editing: "selecting text shows the bubble menu…" |

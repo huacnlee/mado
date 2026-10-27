@@ -156,7 +156,7 @@ test("dragging a block moves it below another block and undo restores it", async
   await app.drag("id:block-grip", { x: 100, y: 48 });
   let text = await saveAndRead(app, "drag.md", (t) => t.indexOf("Second block") < t.indexOf("First block"));
   expect(text.trim()).toBe("Second block\n\nFirst block\n\nThird block");
-  expect(app.shows("id:block-drop-indicator")).toBe(false);
+  expect(app.shows("id:rich-editor-drop-cursor")).toBe(false);
   await app.keyboard.press("mod+z");
   text = await saveAndRead(app, "drag.md", (t) => t.startsWith("First block"));
   expect(text.trim()).toBe("First block\n\nSecond block\n\nThird block");
@@ -169,6 +169,7 @@ test("while a block is dragged its preview shows until the drop", async () => {
   if (!(await holdsDrag(app))) return;
   await app.waitFor("id:drag-preview");
   expect(app.count("text:First block")).toBe(2);
+  expect(app.shows("id:rich-editor-drop-cursor")).toBe(true);
   await app.drop();
   await app.waitFor("id:drag-preview", { state: "gone" });
   const text = await saveAndRead(app, "held.md", (t) => t.indexOf("Second block") < t.indexOf("First block"));
