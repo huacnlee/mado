@@ -1,7 +1,7 @@
 // Editing: Markdown shortcuts as you type, the toolbar, the link editor,
 // the slash menu, lists, undo, and the Visual / Source switch.
 import { expect, test } from "nsh/test";
-import { holdKeys, newFile, openMado, saveAndRead, selectBlock, typeInEditor, typeKeys } from "./helpers";
+import { holdKeys, holdsDrag, newFile, openMado, saveAndRead, selectBlock, typeInEditor, typeKeys } from "./helpers";
 
 test("# and a space make a heading, - a list, [ ] a task", async () => {
   const app = await openMado();
@@ -160,6 +160,19 @@ test("dragging a block moves it below another block and undo restores it", async
   await app.keyboard.press("mod+z");
   text = await saveAndRead(app, "drag.md", (t) => t.startsWith("First block"));
   expect(text.trim()).toBe("First block\n\nSecond block\n\nThird block");
+});
+
+test("while a block is dragged its preview shows until the drop", async () => {
+  const app = await openMado({ files: { "held.md": "First block\n\nSecond block\n\nThird block\n" }, recent: ["held.md"] });
+  await app.press("First block");
+  await app.waitFor("id:block-grip");
+  if (!(await holdsDrag(app))) return;
+  await app.waitFor("id:drag-preview");
+  expect(app.count("text:First block")).toBe(2);
+  await app.drop();
+  await app.waitFor("id:drag-preview", { state: "gone" });
+  const text = await saveAndRead(app, "held.md", (t) => t.indexOf("Second block") < t.indexOf("First block"));
+  expect(text.trim()).toBe("Second block\n\nFirst block\n\nThird block");
 });
 
 test("Alt arrows move blocks up and down", async () => {

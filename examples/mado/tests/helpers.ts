@@ -71,3 +71,14 @@ export async function holdKeys(app: App, keys: string): Promise<boolean> {
     throw error;
   }
 }
+
+/** Drags the block grip down past the next block and keeps the pointer down; false where only headless runs can. */
+export async function holdsDrag(app: App): Promise<boolean> {
+  try {
+    await app.dragAndHold("id:block-grip", { x: 100, y: 48 });
+    return true;
+  } catch (e) {
+    if (String(e).includes("for now")) return false;
+    throw e;
+  }
+}

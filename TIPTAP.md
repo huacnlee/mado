@@ -38,7 +38,7 @@ GTK (`nsh test examples/mado --target linux`).
 | Tables and other unselectable blocks drag too | NSH | GTK and headless drag probes; NSH `drag_block` |
 | A selection over several blocks drags them together | NSH | editing: "the handle carries every block a selection spans" |
 | NodeRange Mod-drag: a mouse selection with Mod held covers whole blocks | NSH | editing: "a Mod-drag across blocks selects them whole"; NSH unit test |
-| Drag preview beside the pointer | Mado | GTK screenshot; no assertion while dragging (`nsh/test`'s drag is one step) |
+| Drag preview beside the pointer while the drag runs | Mado | editing: "while a block is dragged its preview shows until the drop" (`app.dragAndHold`, headless) |
 | Auto-scroll at the editor's edges while dragging | NSH | NSH (`follow_drag_edge`) |
 | The handle hides while typing, returns on the next pointer move | Mado | editing: "typing hides the block handle…" |
 | Bubble menu on a non-empty text selection; the handle stays beside it | Mado | editing: "selecting text shows the bubble menu…" |
@@ -49,6 +49,6 @@ GTK (`nsh test examples/mado --target linux`).
 ## Not covered
 
 - Mod-click and Mod-drag run headless and on Linux: `keyboard.down` holds keys there; the other real targets refuse it.
-- The drag preview while a drag runs: `nsh/test`'s drag is one step (checked by a GTK screenshot).
+- `app.dragAndHold` runs headless only; on GTK the drag preview is checked by a screenshot.
 - `nsh-compat` (`cargo xtask compat`) does not build against NSH's `main` (it still uses `nsh_core::ui` and
   `PatchValue`); the new APIs' case (`tests/compat/cases/base`, step `Page`) passes when run directly.
