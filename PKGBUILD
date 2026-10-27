@@ -1,6 +1,6 @@
 # Maintainer: Jason Lee <huacnlee@gmail.com>
 pkgname=mado
-pkgver=0.1.3
+pkgver=0.2.0
 pkgrel=1
 pkgdesc='Markdown files, edited as documents'
 arch=('x86_64' 'aarch64')
