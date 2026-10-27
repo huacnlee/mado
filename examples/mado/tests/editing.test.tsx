@@ -360,3 +360,13 @@ test("an empty line's floating menu turns it into a heading", async () => {
   const text = await saveAndRead(app, "float.md", (t) => t.includes("Title"));
   expect(text).toBe("Intro\n\n## Title\n");
 });
+
+test("a new document takes the focus and offers its blocks on the empty line", async () => {
+  const app = await openMado();
+  await newFile(app);
+  await app.waitFor("id:floating-menu");
+  await app.press("id:floating-menu >> label:Bullet list");
+  await typeKeys(app, "item");
+  const text = await saveAndRead(app, "Untitled.md", (t) => t.includes("item"));
+  expect(text).toBe("- item\n");
+});

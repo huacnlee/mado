@@ -218,6 +218,11 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     }),
     onEditorEvent(editor, "blur", () => focused.set(false)),
   ];
+  // A document opened without a change yet: the menus and the handle start from it as it is.
+  setTimeout(() => {
+    focused.set(editor.isFocused);
+    follow();
+  }, 0);
   cleanup(() => {
     editor.unsubscribe(subscription);
     for (const off of offs) off();
@@ -258,7 +263,11 @@ export function VisualEditor(props: { mado: MadoEditor; revision: number; action
     <View
       ref={(node: YNode) => (host = node)}
       class="relative flex-1"
-      onLayout={() => void measure()}
+      onLayout={() => {
+        void measure();
+        // The first layout of a new document gives its empty line a place.
+        placeHandle(hovered() ?? editor.selection.head ?? 0);
+      }}
       onHoverMove={(e) => hover(e.pagePosition.x, e.pagePosition.y)}
     >
       <RichEditor
